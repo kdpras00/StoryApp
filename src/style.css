@@ -1,0 +1,609 @@
+/* Reset dan Aksesibilitas */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: #1c2526; /* Hitam keabu-abuan gelap */
+  font-family: "Poppins", sans-serif;
+  line-height: 1.6;
+  color: #e0e0e0; /* Abu-abu terang untuk teks */
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Tambahkan font Poppins */
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap");
+
+.auth-section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 100px);
+  padding: 2rem;
+  animation: fadeIn 0.5s ease-in;
+}
+
+.auth-container {
+  background: #2d3536; /* Abu-abu gelap */
+  padding: 2.5rem;
+  border-radius: 16px;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+  transition: transform 0.3s ease;
+}
+
+.auth-container:hover {
+  transform: translateY(-4px);
+}
+
+.auth-container h2 {
+  color: #ffffff; /* Putih untuk judul */
+  font-size: 1.8rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.auth-container h2 i {
+  margin-right: 0.75rem;
+  color: #a0a0a0; /* Abu-abu untuk ikon */
+}
+
+.auth-form {
+  margin-top: 1.5rem;
+}
+
+.auth-switch {
+  text-align: center;
+  margin-top: 1.5rem;
+  color: #a0a0a0; /* Abu-abu untuk teks */
+  font-size: 0.9rem;
+}
+
+.auth-switch a {
+  color: #e0e0e0; /* Abu-abu terang untuk link */
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+.auth-switch a:hover {
+  color: #ffffff; /* Putih saat hover */
+  text-decoration: underline;
+}
+
+.page {
+  display: none;
+  animation: fadeIn 0.5s ease-in;
+}
+
+.page:not(.hidden) {
+  display: block;
+}
+
+.skip-to-content {
+  position: absolute;
+  top: -40px;
+  left: 10px;
+  background: linear-gradient(45deg, #4a4a4a, #2d3536); /* Gradasi abu-abu */
+  padding: 12px;
+  color: #ffffff;
+  text-decoration: none;
+  border-radius: 8px;
+  font-weight: 500;
+  z-index: 1001;
+}
+
+.skip-to-content:focus {
+  top: 10px;
+}
+
+/* Header */
+header {
+  background: linear-gradient(
+    45deg,
+    #1c2526,
+    #4a4a4a
+  ); /* Gradasi hitam ke abu-abu */
+  padding: 1.2rem 2rem;
+  color: #ffffff;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+header h1 {
+  font-size: 1.8rem;
+  font-weight: 600;
+  margin-right: 2rem;
+}
+
+.nav-container {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  align-items: center;
+}
+
+nav ul {
+  list-style: none;
+  display: flex;
+  gap: 1.2rem;
+  margin: 0;
+  padding: 0;
+}
+
+.left-nav {
+  display: flex;
+}
+
+.right-nav {
+  margin-left: auto;
+}
+
+nav a {
+  color: #ffffff;
+  text-decoration: none;
+  font-weight: 500;
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  display: inline-block;
+}
+
+nav a:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Map styling yang lebih modern */
+#map, #story-map {
+  width: 100%;
+  height: 400px;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  margin: 1.5rem 0;
+  overflow: hidden;
+  border: 2px solid #4a4a4a;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+#map:hover, #story-map:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
+}
+
+/* Mobile Friendly */
+@media (max-width: 768px) {
+  header {
+    padding: 1rem;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  header h1 {
+    margin-right: 0;
+    margin-bottom: 0.8rem;
+  }
+  
+  .nav-container {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  nav ul {
+    width: 100%;
+    justify-content: center;
+    margin-top: 0.8rem;
+  }
+  
+  .left-nav, .right-nav {
+    justify-content: center;
+    width: 100%;
+  }
+  
+  .right-nav {
+    margin-top: 0.8rem;
+  }
+  
+  .leaflet-control-zoom,
+  .leaflet-control-layers {
+    position: fixed !important;
+    z-index: 1000 !important;
+  }
+  
+  .leaflet-control-zoom {
+    bottom: 80px !important;
+    right: 10px !important;
+  }
+  
+  .leaflet-control-layers {
+    bottom: 150px !important;
+    right: 10px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  nav a {
+    padding: 0.5rem 0.8rem;
+    font-size: 0.9rem;
+  }
+  
+  header h1 {
+    font-size: 1.3rem;
+  }
+}
+
+.hidden {
+  display: none;
+}
+
+/* Main */
+main {
+  padding: 160px 2rem 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Story List */
+#story-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.story-card {
+  background: #2d3536; /* Abu-abu gelap */
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.story-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4);
+}
+
+.story-card img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.story-card h3 {
+  color: #ffffff; /* Putih untuk judul */
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0.5rem 0;
+}
+
+.story-card p {
+  color: #a0a0a0; /* Abu-abu untuk teks */
+  font-size: 0.95rem;
+  margin: 0.5rem 0;
+}
+
+/* Form */
+.form-group {
+  margin-bottom: 1.75rem;
+  position: relative;
+}
+
+.form-group label {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #e0e0e0; /* Abu-abu terang untuk label */
+}
+
+.form-group label i {
+  margin-right: 0.5rem;
+  color: #a0a0a0; /* Abu-abu untuk ikon */
+}
+
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 0.85rem 1.2rem;
+  border: 2px solid #4a4a4a; /* Abu-abu untuk border */
+  border-radius: 10px;
+  font-size: 1rem;
+  background: #1c2526; /* Hitam keabu-abuan untuk background */
+  color: #e0e0e0; /* Abu-abu terang untuk teks */
+  transition: all 0.3s ease;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  border-color: #a0a0a0; /* Abu-abu saat fokus */
+  box-shadow: 0 0 0 4px rgba(160, 160, 160, 0.1);
+  outline: none;
+  background: #2d3536; /* Abu-abu gelap saat fokus */
+}
+
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+  color: #a0a0a0; /* Abu-abu untuk placeholder */
+}
+
+.form-group textarea {
+  height: 140px;
+  resize: vertical;
+}
+
+.image-input-container {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.camera-container,
+.file-upload-container {
+  flex: 1;
+  min-width: 320px;
+}
+
+.form-group video,
+.form-group canvas,
+.form-group #preview {
+  max-width: 100%;
+  border: 2px solid #4a4a4a; /* Abu-abu untuk border */
+  border-radius: 10px;
+  margin-bottom: 1rem;
+}
+
+.file-input {
+  width: 0.1px;
+  height: 0.1px;
+  opacity: 0;
+  overflow: hidden;
+  position: absolute;
+  z-index: -1;
+}
+
+.file-label {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.85rem 1.75rem;
+  background: linear-gradient(45deg, #4a4a4a, #2d3536); /* Gradasi abu-abu */
+  color: #ffffff;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 500;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.file-label:hover {
+  background: linear-gradient(45deg, #2d3536, #4a4a4a);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+}
+
+.file-label i {
+  margin-right: 0.5rem;
+}
+
+.password-input {
+  position: relative;
+}
+
+.toggle-password {
+  position: absolute;
+  right: 1.2rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #a0a0a0; /* Abu-abu untuk ikon */
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.toggle-password:hover {
+  color: #ffffff; /* Putih saat hover */
+}
+
+button {
+  background: linear-gradient(45deg, #4a4a4a, #2d3536); /* Gradasi abu-abu */
+  color: #ffffff;
+  padding: 0.85rem 1.75rem;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+button i {
+  margin-right: 0.5rem;
+}
+
+button:hover {
+  background: linear-gradient(45deg, #2d3536, #4a4a4a);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+}
+
+button:active {
+  transform: translateY(0);
+}
+
+.btn-primary {
+  width: 100%;
+  margin-top: 1.5rem;
+}
+
+/* Map */
+#map {
+  width: 100%;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  margin: 1.5rem 0;
+  overflow: hidden;
+}
+
+.leaflet-control-zoom {
+  border: none !important;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3) !important;
+}
+
+.leaflet-control-zoom a {
+  background: #2d3536 !important; /* Abu-abu gelap */
+  color: #ffffff !important;
+  border: 1px solid #4a4a4a !important; /* Abu-abu untuk border */
+  transition: all 0.3s ease !important;
+}
+
+.leaflet-control-zoom a:hover {
+  background: #4a4a4a !important; /* Abu-abu lebih terang saat hover */
+  color: #ffffff !important;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 10px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+}
+
+.leaflet-popup-content {
+  margin: 0.75rem 1.25rem !important;
+  font-family: "Poppins", sans-serif !important;
+  color: #e0e0e0 !important; /* Abu-abu terang untuk teks */
+}
+
+/* Animasi */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Tambahkan animasi fadeOut */
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+}
+
+/* Mobile Friendly */
+/* Perbaikan untuk kontrol peta pada tampilan mobile */
+@media (max-width: 768px) {
+  .leaflet-control-zoom,
+  .leaflet-control-layers {
+    position: fixed !important;
+    z-index: 1000 !important;
+  }
+  
+  .leaflet-control-zoom {
+    bottom: 80px !important;
+    right: 10px !important;
+  }
+  
+  .leaflet-control-layers {
+    bottom: 150px !important;
+    right: 10px !important;
+  }
+  
+  #map, #story-map {
+    height: 300px !important;
+  }
+  
+  .image-input-container {
+    flex-direction: column;
+  }
+  
+  .camera-container,
+  .file-upload-container {
+    width: 100%;
+  }
+  
+  /* Memperbaiki padding untuk form pada mobile */
+  .form-group input,
+  .form-group textarea {
+    padding: 0.7rem 1rem;
+  }
+  
+  /* Memperbaiki ukuran font untuk mobile */
+  body {
+    font-size: 14px;
+  }
+  
+  /* Memperbaiki header pada mobile */
+  header {
+    padding: 1rem;
+  }
+  
+  /* Memperbaiki navigasi pada mobile */
+  nav ul {
+    gap: 0.5rem;
+  }
+  
+  nav a {
+    padding: 0.5rem 0.8rem;
+    font-size: 0.9rem;
+  }
+}
+
+/* Tambahan untuk perangkat sangat kecil */
+@media (max-width: 480px) {
+  header h1 {
+    font-size: 1.3rem;
+  }
+  
+  .auth-container {
+    padding: 1.5rem;
+  }
+  
+  .auth-container h2 {
+    font-size: 1.3rem;
+  }
+  
+  .form-group label {
+    font-size: 0.9rem;
+  }
+  
+  .form-group input,
+  .form-group textarea {
+    font-size: 0.9rem;
+    padding: 0.6rem 0.8rem;
+  }
+  
+  button, .file-label {
+    padding: 0.6rem 1rem;
+    font-size: 0.9rem;
+  }
+  
+  #map, #story-map {
+    height: 250px !important;
+  }
+}
