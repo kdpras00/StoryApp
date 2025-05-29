@@ -360,6 +360,27 @@ main {
 .file-upload-container {
   flex: 1;
   min-width: 320px;
+  position: relative;
+
+}
+
+#camera, #canvas, #preview {
+  max-width: 100%;
+  border-radius: 10px;
+  margin-bottom: 1rem;
+  border: 2px solid #4a4a4a;
+}
+
+#capture, #close-camera {
+  margin-right: 0.5rem;
+}
+
+#close-camera {
+  background: linear-gradient(45deg, #e74c3c, #c0392b);
+}
+
+#close-camera:hover {
+  background: linear-gradient(45deg, #c0392b, #e74c3c);
 }
 
 .form-group video,
@@ -606,4 +627,32 @@ button:active {
   #map, #story-map {
     height: 250px !important;
   }
+}
+
+.favorite-btn {
+  margin-top: 1rem;
+  background: linear-gradient(45deg, #4a4a4a, #2d3536);
+  border: none;
+  border-radius: 8px;
+  padding: 0.6rem 1rem;
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.favorite-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.favorite-btn.favorited {
+  background: linear-gradient(45deg, #e74c3c, #c0392b);
+}
+
+.favorite-btn i {
+  font-size: 1.1rem;
 }

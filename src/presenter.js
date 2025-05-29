@@ -10,6 +10,8 @@ class Presenter {
     this.map = null;
     this._currentHash = null;
     
+    // Bind event handlers
+    this.view.onFavoriteClick = this.handleFavoriteClick.bind(this);
     this.view.onRegisterSubmit = this.handleRegisterSubmit.bind(this);
     this.view.onLoginSubmit = this.handleLoginSubmit.bind(this);
     this.view.onStorySubmit = this.handleStorySubmit.bind(this);
@@ -50,26 +52,36 @@ class Presenter {
   }
 
   async handleRegisterSubmit(data) {
-    const result = await this.model.register(data);
-    this.view.showMessage(result.message, result.error);
-    if (!result.error) {
-      this.view.navigateTo('login');
+    try {
+      const result = await this.model.register(data);
+      this.view.showMessage(result.message, result.error);
+      if (!result.error) {
+        this.view.navigateTo('login');
+      }
+    } catch (error) {
+      this.view.showMessage('Gagal mendaftar: ' + error.message, true);
     }
   }
 
   async handleLoginSubmit(data) {
-    const result = await this.model.login(data);
-    this.view.showMessage(result.message, result.error);
-    if (!result.error) {
-      this.view.updateNav(true);
-      this.view.navigateTo('home');
-      await this.loadStories();
-      if (Notification.permission === 'granted') {
-        const registration = await navigator.serviceWorker.getRegistration();
-        if (registration) {
-          await this.subscribeToPush(registration);
+    try {
+      const result = await this.model.login(data);
+      this.view.showMessage(result.message, result.error);
+      if (!result.error) {
+        this.view.updateNav(true);
+        this.view.navigateTo('home');
+        await this.loadStories();
+        
+        // Setup push notification after successful login
+        if (Notification.permission === 'granted') {
+          const registration = await navigator.serviceWorker.getRegistration();
+          if (registration) {
+            await this.subscribeToPush(registration);
+          }
         }
       }
+    } catch (error) {
+      this.view.showMessage('Gagal login: ' + error.message, true);
     }
   }
 
@@ -143,7 +155,7 @@ class Presenter {
   }
 
   handleNavLinkClick(event, targetPage) {
-    if (!this.model.isLoggedIn() && (targetPage === 'home' || targetPage === 'add-story')) {
+    if (!this.model.isLoggedIn() && (targetPage === 'home' || targetPage === 'add-story' || targetPage === 'favorites')) {
       event.preventDefault();
       this.view.showMessage('Silakan login terlebih dahulu', true);
       this.view.navigateTo('login');
@@ -166,12 +178,16 @@ class Presenter {
     const previousHash = this._currentHash;
     this._currentHash = hash;
     
-    if (!this.model.isLoggedIn() && (hash === 'home' || hash === 'add-story')) {
+    if (!this.model.isLoggedIn() && (hash === 'home' || hash === 'add-story' || hash === 'favorites')) {
       this.view.navigateTo('login');
       return;
     }
+
+    if (!['home', 'add-story', 'login', 'register', 'favorites'].includes(hash)) {
+      this.showNotFoundPage();
+      return;
+    }
     
-    // Matikan kamera jika berpindah dari halaman add-story
     if (previousHash === 'add-story' && hash !== 'add-story') {
       this.view.stopCamera();
     }
@@ -179,6 +195,21 @@ class Presenter {
     this.view.handlePageViewTransition(hash, async () => {
       await this.handlePageSpecificSetup(hash);
     });
+  }
+
+  showNotFoundPage() {
+    const notFoundPage = document.getElementById('not-found');
+    if (notFoundPage) {
+      this.view.showPage('not-found');
+    } else {
+      // If no not-found page exists, redirect to home or login
+      if (this.model.isLoggedIn()) {
+        this.view.navigateTo('home');
+      } else {
+        this.view.navigateTo('login');
+      }
+    }
+    this.view.showMessage('Halaman tidak ditemukan', true);
   }
 
   async handlePageSpecificSetup(pageId) {
@@ -191,6 +222,9 @@ class Presenter {
         break;
       case 'add-story':
         await this.setupAddStoryPage();
+        break;
+      case 'favorites':
+        await this.loadFavoriteStories();
         break;
       default:
         this.view.stopCamera();
@@ -216,9 +250,21 @@ class Presenter {
     
     try {
       const stories = await this.model.fetchStories();
-      this.view.displayStories(stories);
+      const favorites = await this.model.getFavorites();
+      this.view.displayStories(stories, favorites);
     } catch (error) {
       this.view.showMessage('Gagal memuat cerita: ' + error.message, true);
+    }
+  }
+
+  async loadFavoriteStories() {
+    if (!this.model.isLoggedIn()) return;
+    
+    try {
+      const favorites = await this.model.getFavorites();
+      this.view.displayFavoriteStories(favorites);
+    } catch (error) {
+      this.view.showMessage('Gagal memuat cerita favorit: ' + error.message, true);
     }
   }
 
@@ -235,6 +281,7 @@ class Presenter {
       switch (permissionStatus) {
         case 'granted':
           await this.subscribeToPush(registration);
+          this.view.updateNotificationUI(true);
           break;
         case 'denied':
           console.log('Push notification permission was denied');
@@ -242,8 +289,8 @@ class Presenter {
           break;
         case 'default':
         default:
-          this.view.showMessage('Aplikasi akan meminta izin untuk menampilkan notifikasi', false);
           this.view.setupNotificationButton(() => this.requestNotificationPermission(registration));
+          this.view.updateNotificationUI(false);
           break;
       }
     } catch (error) {
@@ -260,15 +307,13 @@ class Presenter {
         this.view.showMessage('Notifikasi berhasil diaktifkan!', false);
         this.view.updateNotificationUI(true);
       } else {
+        this.view.showMessage('Notifikasi tidak diaktifkan', false);
         this.view.updateNotificationUI(false);
       }
     } catch (error) {
       console.error('Permission request failed:', error);
       this.view.showMessage('Gagal meminta izin notifikasi', true);
-      if (error.name === 'NotAllowedError') {
-        this.view.showMessage('Notifikasi tidak diizinkan. Ubah pengaturan browser untuk mengaktifkan notifikasi.', false);
-        this.view.updateNotificationUI(false);
-      }
+      this.view.updateNotificationUI(false);
     }
   }
   
@@ -285,15 +330,43 @@ class Presenter {
       }
     } catch (error) {
       console.error('Push subscription failed:', error);
-      if (error.name === 'NotAllowedError') {
-        this.view.showMessage('Notifikasi tidak diizinkan. Ubah pengaturan browser untuk mengaktifkan notifikasi.', false);
-        this.view.updateNotificationUI(false);
+      this.view.updateNotificationUI(false);
+    }
+  }
+
+  async handleFavoriteClick(story, addToFavorite) {
+    if (!this.model.isLoggedIn()) {
+      this.view.showMessage('Silakan login terlebih dahulu', true);
+      this.view.navigateTo('login');
+      return;
+    }
+    
+    try {
+      if (addToFavorite) {
+        await this.model.addStoryToFavorites(story);
+        this.view.showMessage('Cerita ditambahkan ke favorit', false);
+      } else {
+        await this.model.removeStoryFromFavorites(story.id);
+        this.view.showMessage('Cerita dihapus dari favorit', false);
       }
+      
+      // Update the specific button state immediately
+      this.view.updateFavoriteButton(story.id, addToFavorite);
+      
+      // Reload stories to ensure consistency
+      const currentHash = this.view.getCurrentHash();
+      if (currentHash === 'favorites') {
+        await this.loadFavoriteStories();
+      } else {
+        await this.loadStories();
+      }
+    } catch (error) {
+      this.view.showMessage('Gagal memperbarui favorit: ' + error.message, true);
     }
   }
 
   setupRouting() {
-    const hash = this.view.getCurrentHash();
+    // Initial route handling
     this.handleRouteChange();
   }
 }

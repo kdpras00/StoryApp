@@ -4,7 +4,7 @@ import './app.js';
 // Service worker registration
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
+    navigator.serviceWorker.register('./sw.js') // Changed path to relative
       .then(registration => {
         console.log('SW registered: ', registration);
       })

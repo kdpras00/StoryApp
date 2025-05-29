@@ -28,6 +28,7 @@ class View {
     this.onCaptureClick = null;
     this.onNavLinkClick = null;
     this.onMapClick = null;
+    this.onFavoriteClick = null; // Added for favorite functionality
     
     this._initializeEventListeners();
   }
@@ -177,22 +178,34 @@ class View {
     }
   }
 
-  displayStories(stories) {
+  displayStories(stories, favorites = []) {
     this.storyList.innerHTML = '';
     this.clearStoryMapMarkers();
+    
     stories.forEach(story => {
       const card = document.createElement('div');
       card.className = 'story-card';
       card.setAttribute('role', 'listitem');
+      
+      const isFavorited = favorites.some(fav => fav.id === story.id);
+      
       card.innerHTML = `
         <img src="${story.photoUrl}" alt="Foto cerita ${story.name}" loading="lazy">
         <h3>${story.name}</h3>
         <p>${story.description}</p>
         <p>Lokasi: ${story.lat ?? '-'}, ${story.lon ?? '-'}</p>
         <p>Dibuat: ${new Date(story.createdAt).toLocaleDateString('id-ID')}</p>
+        <button class="favorite-btn ${isFavorited ? 'favorited' : ''}"
+                 data-story-id="${story.id}"
+                 aria-label="${isFavorited ? 'Hapus dari favorit' : 'Tambah ke favorit'}"
+                 aria-pressed="${isFavorited}">
+            <i class="fas fa-heart"></i> ${isFavorited ? 'Hapus Favorit' : 'Tambah Favorit'}
+        </button>
       `;
+      
       this.storyList.appendChild(card);
 
+      // Add map marker if coordinates exist
       if (story.lat && story.lon && this.storyMap) {
         const marker = L.marker([story.lat, story.lon]).addTo(this.storyMap);
         marker.bindPopup(`
@@ -203,6 +216,52 @@ class View {
         this.storyMarkers.push(marker);
       }
     });
+
+    // Add event listeners for favorite buttons
+    this.storyList.querySelectorAll('.favorite-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const storyId = btn.getAttribute('data-story-id');
+        const story = stories.find(s => s.id === storyId);
+        const addToFavorite = !btn.classList.contains('favorited');
+        
+        if (this.onFavoriteClick && story) {
+          this.onFavoriteClick(story, addToFavorite);
+        }
+      });
+    });
+  }
+
+  // Method to update favorite button state after favorite action
+  updateFavoriteButton(storyId, isFavorited) {
+    const btn = this.storyList.querySelector(`[data-story-id="${storyId}"]`);
+    if (btn) {
+      if (isFavorited) {
+        btn.classList.add('favorited');
+        btn.innerHTML = '<i class="fas fa-heart"></i> Hapus Favorit';
+        btn.setAttribute('aria-label', 'Hapus dari favorit');
+        btn.setAttribute('aria-pressed', 'true');
+      } else {
+        btn.classList.remove('favorited');
+        btn.innerHTML = '<i class="fas fa-heart"></i> Tambah Favorit';
+        btn.setAttribute('aria-label', 'Tambah ke favorit');
+        btn.setAttribute('aria-pressed', 'false');
+      }
+    }
+  }
+
+  // Method to display only favorite stories
+  displayFavoriteStories(favoriteStories) {
+    this.storyList.innerHTML = '';
+    this.clearStoryMapMarkers();
+    
+    if (favoriteStories.length === 0) {
+      this.storyList.innerHTML = '<p class="no-favorites">Belum ada cerita favorit.</p>';
+      return;
+    }
+    
+    // Display favorites with all stories marked as favorited
+    this.displayStories(favoriteStories, favoriteStories);
   }
 
   async setupCamera() {
@@ -248,7 +307,7 @@ class View {
     if (this.map) {
       return this.map;
     }
-
+    this.mapContainer.setAttribute('aria-label', 'Peta interaktif untuk memilih lokasi cerita');
     this.map = L.map(this.mapContainer).setView([-6.185931, 106.552764], 17);
     
     // Tambahkan beragam tile layers
@@ -293,6 +352,7 @@ class View {
     if (this.storyMap) {
       return this.storyMap;
     }
+    this.storyMapContainer.setAttribute('aria-label', 'Peta interaktif untuk menampilkan lokasi cerita');
 
     this.storyMap = L.map(this.storyMapContainer).setView([-6.185931, 106.552764], 10);
     

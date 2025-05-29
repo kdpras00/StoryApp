@@ -1,8 +1,18 @@
+import { 
+  saveStoriesToIndexedDB, 
+  getStoriesFromIndexedDB,
+  addToFavorites,
+  removeFromFavorites,
+  getFavoriteStories,
+  isStoryInFavorites
+} from './utils.js';
+
 const API_BASE_URL = 'https://story-api.dicoding.dev/v1';
 
 class Model {
   constructor() {
     this.token = localStorage.getItem('token') || null;
+    this.baseUrl = API_BASE_URL; // Added to fix potential undefined baseUrl
   }
 
   async register({ name, email, password }) {
@@ -50,18 +60,36 @@ class Model {
 
   async fetchStories() {
     try {
-      const response = await fetch(`${API_BASE_URL}/stories?location=1`, {
-        headers: { Authorization: `Bearer ${this.token}` },
-      });
-      if (!response.ok) {
-        throw new Error('Gagal mengambil cerita.');
-      }
-      const data = await response.json();
-      return data.listStory || [];
+        const response = await fetch(`${this.baseUrl}/stories`, {
+            headers: this.getHeaders(),
+        });
+        if (!response.ok) {
+            throw new Error(`Failed to fetch stories: ${response.status} ${response.statusText}`);
+        }
+        const responseJson = await response.json();
+        const stories = responseJson.listStory || [];
+        await saveStoriesToIndexedDB(stories);
+        return stories;
     } catch (error) {
-      console.error('Fetch stories error:', error);
-      return [];
+        console.error('Fetch stories error:', error.message);
+        return await getStoriesFromIndexedDB();
     }
+}
+
+  async addStoryToFavorites(story) {
+    return await addToFavorites(story);
+  }
+  
+  async removeStoryFromFavorites(storyId) {
+    return await removeFromFavorites(storyId);
+  }
+  
+  async getFavorites() {
+    return await getFavoriteStories();
+  }
+  
+  async isStoryFavorited(storyId) {
+    return await isStoryInFavorites(storyId);
   }
 
   async addStory(formData) {
@@ -104,6 +132,10 @@ class Model {
 
   isLoggedIn() {
     return !!this.token;
+  }
+
+  getHeaders() {
+    return this.token ? { Authorization: `Bearer ${this.token}` } : {};
   }
 }
 
