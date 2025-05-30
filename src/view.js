@@ -169,15 +169,18 @@ class View {
       button.addEventListener("click", () => {
         const targetId = button.getAttribute("data-target");
         const passwordInput = document.getElementById(targetId);
+        const icon = button.querySelector("i");
 
         if (passwordInput.type === "password") {
           passwordInput.type = "text";
-          button.classList.remove("fa-eye");
-          button.classList.add("fa-eye-slash");
+          icon.classList.remove("fa-eye");
+          icon.classList.add("fa-eye-slash");
+          button.setAttribute("aria-label", "Sembunyikan password");
         } else {
           passwordInput.type = "password";
-          button.classList.remove("fa-eye-slash");
-          button.classList.add("fa-eye");
+          icon.classList.remove("fa-eye-slash");
+          icon.classList.add("fa-eye");
+          button.setAttribute("aria-label", "Tampilkan password");
         }
       });
     });

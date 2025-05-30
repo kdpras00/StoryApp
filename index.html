@@ -123,19 +123,19 @@
               <label for="login-password"
                 ><i class="fas fa-lock"></i> Password</label
               >
-              <input
-                type="password"
-                id="login-password"
-                name="password"
-                required
-                aria-label="Kata sandi untuk login"
-                placeholder="Masukkan password Anda"
-              />
-              <i
-                class="fas fa-eye toggle-password"
-                data-target="login-password"
-                aria-hidden="true"
-              ></i>
+              <div class="password-input">
+                <input
+                  type="password"
+                  id="login-password"
+                  name="password"
+                  required
+                  aria-label="Kata sandi untuk login"
+                  placeholder="Masukkan password Anda"
+                />
+                <button type="button" class="toggle-password" data-target="login-password" aria-label="Tampilkan/sembunyikan password">
+                  <i class="fas fa-eye" aria-hidden="true"></i>
+                </button>
+              </div>
             </div>
             <button type="submit" class="btn-primary">
               <i class="fas fa-sign-in-alt"></i> Login
@@ -182,19 +182,19 @@
               <label for="register-password"
                 ><i class="fas fa-lock"></i> Password</label
               >
-              <input
-                type="password"
-                id="register-password"
-                name="password"
-                required
-                aria-label="Kata sandi untuk registrasi"
-                placeholder="Minimal 6 karakter"
-              />
-              <i
-                class="fas fa-eye toggle-password"
-                data-target="register-password"
-                aria-hidden="true"
-              ></i>
+              <div class="password-input">
+                <input
+                  type="password"
+                  id="register-password"
+                  name="password"
+                  required
+                  aria-label="Kata sandi untuk registrasi"
+                  placeholder="Minimal 6 karakter"
+                />
+                <button type="button" class="toggle-password" data-target="register-password" aria-label="Tampilkan/sembunyikan password">
+                  <i class="fas fa-eye" aria-hidden="true"></i>
+                </button>
+              </div>
             </div>
 
             <button type="submit" class="btn-primary">

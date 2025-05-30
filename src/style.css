@@ -424,6 +424,13 @@ main {
 
 .password-input {
   position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input input {
+  width: 100%;
+  padding-right: 3rem; /* beri ruang agar icon tidak tumpang tindih */
 }
 
 .toggle-password {
@@ -433,16 +440,17 @@ main {
   transform: translateY(-50%);
   cursor: pointer;
   color: #a0a0a0;
-  transition: color 0.3s ease;
   background: none;
   border: none;
-  font-size: 1rem;
-  padding: 0.5rem;
+  font-size: 1.2rem;
+  padding: 0;
   z-index: 2;
+  transition: none;
 }
 
 .toggle-password:hover {
   color: #ffffff;
+  transform: translateY(-50%);
 }
 
 button {
