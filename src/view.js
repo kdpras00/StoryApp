@@ -60,6 +60,7 @@ class View {
     this._setupFormEventListeners();
     this._setupNavigationEventListeners();
     this._setupPasswordToggle();
+    this._setupFormValidation();
   }
 
   _setupSkipToContent() {
@@ -106,6 +107,26 @@ class View {
   _setupFormEventListeners() {
     this.registerForm.addEventListener("submit", (e) => {
       e.preventDefault();
+
+      // Validate form before submission
+      const nameInput = e.target.querySelector("#register-name");
+      const emailInput = e.target.querySelector("#register-email");
+      const passwordInput = e.target.querySelector("#register-password");
+
+      if (
+        !nameInput.validity.valid ||
+        !emailInput.validity.valid ||
+        !passwordInput.validity.valid
+      ) {
+        // Show error messages for invalid fields
+        this._validateInput(nameInput);
+        this._validateInput(emailInput);
+        this._validateInput(passwordInput);
+
+        this.showMessage("Harap perbaiki form sebelum mendaftar.", true);
+        return;
+      }
+
       if (this.onRegisterSubmit) {
         const formData = new FormData(e.target);
         const data = {
@@ -128,6 +149,20 @@ class View {
 
     this.loginForm.addEventListener("submit", (e) => {
       e.preventDefault();
+
+      // Validate form before submission
+      const emailInput = e.target.querySelector("#login-email");
+      const passwordInput = e.target.querySelector("#login-password");
+
+      if (!emailInput.validity.valid || !passwordInput.validity.valid) {
+        // Show error messages for invalid fields
+        this._validateInput(emailInput);
+        this._validateInput(passwordInput);
+
+        this.showMessage("Harap perbaiki form sebelum login.", true);
+        return;
+      }
+
       if (this.onLoginSubmit) {
         const formData = new FormData(e.target);
         const data = {
@@ -1087,6 +1122,89 @@ class View {
           }
         });
       });
+    }
+  }
+
+  _setupFormValidation() {
+    // Login form validation
+    if (this.loginForm) {
+      const emailInput = this.loginForm.querySelector("#login-email");
+      const passwordInput = this.loginForm.querySelector("#login-password");
+
+      // Add validation messages if they don't exist
+      this._addValidationMessage(emailInput, "Masukkan email yang valid");
+      this._addValidationMessage(passwordInput, "Password minimal 6 karakter");
+
+      // Live validation
+      emailInput.addEventListener("input", () => {
+        this._validateInput(emailInput);
+      });
+
+      passwordInput.addEventListener("input", () => {
+        this._validateInput(passwordInput);
+      });
+    }
+
+    // Register form validation
+    if (this.registerForm) {
+      const nameInput = this.registerForm.querySelector("#register-name");
+      const emailInput = this.registerForm.querySelector("#register-email");
+      const passwordInput =
+        this.registerForm.querySelector("#register-password");
+
+      // Add validation messages
+      this._addValidationMessage(nameInput, "Nama minimal 3 karakter");
+      this._addValidationMessage(emailInput, "Masukkan email yang valid");
+      this._addValidationMessage(passwordInput, "Password minimal 6 karakter");
+
+      // Live validation
+      nameInput.addEventListener("input", () => {
+        this._validateInput(nameInput);
+      });
+
+      emailInput.addEventListener("input", () => {
+        this._validateInput(emailInput);
+      });
+
+      passwordInput.addEventListener("input", () => {
+        this._validateInput(passwordInput);
+      });
+    }
+  }
+
+  _addValidationMessage(input, message) {
+    // Check if a validation message already exists
+    let validationMsg = input.nextElementSibling;
+    if (
+      !validationMsg ||
+      !validationMsg.classList.contains("validation-message")
+    ) {
+      validationMsg = document.createElement("div");
+      validationMsg.className = "validation-message";
+      validationMsg.innerText = message;
+
+      // For password inputs, add after the password-input div
+      if (input.id === "login-password" || input.id === "register-password") {
+        const passwordInputDiv = input.closest(".password-input");
+        passwordInputDiv.parentNode.insertBefore(
+          validationMsg,
+          passwordInputDiv.nextSibling
+        );
+      } else {
+        // For other inputs, add right after the input
+        input.parentNode.insertBefore(validationMsg, input.nextSibling);
+      }
+    }
+  }
+
+  _validateInput(input) {
+    // Remove existing classes
+    input.classList.remove("error", "success");
+
+    if (input.validity.valid) {
+      input.classList.add("success");
+    } else {
+      input.classList.add("error");
     }
   }
 }

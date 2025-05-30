@@ -112,6 +112,8 @@ body {
 
 .auth-form input::placeholder {
   color: #6c7983;
+  opacity: 0.7;
+  font-size: 0.9rem;
 }
 
 .password-input {
@@ -1311,4 +1313,38 @@ button.loading::after {
   .search-container {
     margin: 0 auto 1rem;
   }
+}
+
+/* Form validation styling */
+.auth-form input:invalid:focus {
+  border-color: #dc3545;
+  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.25);
+}
+
+.auth-form input:valid:focus {
+  border-color: #28a745;
+  box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.25);
+}
+
+/* Form validation messages */
+.validation-message {
+  color: #dc3545;
+  font-size: 0.85rem;
+  margin-top: 0.3rem;
+  display: none;
+}
+
+.auth-form input:invalid:focus + .validation-message,
+.auth-form input:invalid:focus ~ .validation-message {
+  display: block;
+  animation: fadeIn 0.3s ease;
+}
+
+/* Visual feedback for form fields */
+.auth-form input.error {
+  border-color: #dc3545;
+}
+
+.auth-form input.success {
+  border-color: #28a745;
 }
