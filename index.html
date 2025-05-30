@@ -137,6 +137,34 @@
       <!-- Content sections - will show after login -->
       <section id="home" class="page hidden">
         <h2>Daftar Cerita</h2>
+        
+        <!-- Add story controls section -->
+        <div class="story-controls">
+          <!-- Search bar -->
+          <div class="search-container">
+            <input type="text" id="story-search" placeholder="Cari cerita..." aria-label="Cari cerita">
+            <button id="search-button" aria-label="Cari">
+              <i class="fas fa-search"></i>
+            </button>
+          </div>
+          
+          <!-- Story filter tabs -->
+          <div class="story-filter-tabs">
+            <button class="filter-tab active" data-filter="all">
+              <i class="fas fa-list"></i> Semua
+            </button>
+            <button class="filter-tab" data-filter="newest">
+              <i class="fas fa-clock"></i> Terbaru
+            </button>
+            <button class="filter-tab" data-filter="oldest">
+              <i class="fas fa-history"></i> Terlama
+            </button>
+            <button class="filter-tab" data-filter="favorites">
+              <i class="fas fa-heart"></i> Favorit
+            </button>
+          </div>
+        </div>
+        
         <div id="story-map" style="height: 400px; margin-bottom: 2rem"></div>
         <div id="story-list"></div>
       </section>

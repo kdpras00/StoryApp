@@ -21,6 +21,7 @@ class Presenter {
     this.view.onCaptureClick = this.handleCaptureClick.bind(this);
     this.view.onNavLinkClick = this.handleNavLinkClick.bind(this);
     this.view.onMapClick = this.handleMapClick.bind(this);
+    this.view.onFilterChange = this.handleFilterChange.bind(this);
 
     this.init();
   }
@@ -375,6 +376,10 @@ class Presenter {
       const stories = await this.model.fetchStories();
       const favorites = await this.model.getFavorites();
       this.view.displayStories(stories, favorites);
+
+      // Reset to default filter after loading
+      this.view.setActiveFilter("all");
+      this.view.clearSearch();
     } catch (error) {
       console.error("Load stories error:", error);
       this.view.showMessage("Gagal memuat cerita. Coba lagi nanti.", true);
@@ -542,6 +547,23 @@ class Presenter {
       if (this._processingFavorites) {
         this._processingFavorites[story.id] = false;
       }
+    }
+  }
+
+  async handleFilterChange(filter) {
+    if (!this.model.isLoggedIn()) return;
+
+    // Apply the appropriate actions based on filter
+    switch (filter) {
+      case "favorites":
+        await this.loadFavoriteStories();
+        break;
+      case "newest":
+      case "oldest":
+      case "all":
+      default:
+        // These are handled by the view's _applyFiltersAndSearch method
+        break;
     }
   }
 

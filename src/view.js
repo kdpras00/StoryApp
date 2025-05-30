@@ -15,6 +15,11 @@ class View {
     this.navList = document.getElementById("nav-list");
     this.navLinks = document.querySelectorAll("nav a");
 
+    // Story filtering elements
+    this.storySearch = document.getElementById("story-search");
+    this.searchButton = document.getElementById("search-button");
+    this.filterTabs = document.querySelectorAll(".filter-tab");
+
     // Auth elements
     this.authContainer = document.getElementById("auth-container");
     this.appHeader = document.getElementById("app-header");
@@ -28,6 +33,12 @@ class View {
     this.stream = null;
     this.capturedImageData = null;
 
+    // Story filtering state
+    this.allStories = []; // Store all stories for filtering
+    this.favoriteStories = []; // Store favorite stories
+    this.currentFilter = "all"; // Default filter
+    this.searchQuery = ""; // Current search query
+
     this.onRegisterSubmit = null;
     this.onLoginSubmit = null;
     this.onStorySubmit = null;
@@ -35,10 +46,12 @@ class View {
     this.onNavLinkClick = null;
     this.onMapClick = null;
     this.onFavoriteClick = null; // Added for favorite functionality
+    this.onFilterChange = null; // Added for filter functionality
 
     this._initializeEventListeners();
     this._setupImageErrorHandling();
     this._setupAuthLinks();
+    this._setupStoryFilters();
   }
 
   _initializeEventListeners() {
@@ -254,6 +267,16 @@ class View {
   }
 
   displayStories(stories, favorites = []) {
+    // Store all stories for filtering
+    if (!this.searchQuery && this.currentFilter === "all") {
+      this.allStories = [...stories];
+    }
+
+    // Store favorites
+    if (favorites.length) {
+      this.favoriteStories = [...favorites];
+    }
+
     this.storyList.innerHTML = "";
     this.clearStoryMapMarkers();
 
@@ -362,6 +385,14 @@ class View {
             '<i class="fas fa-heart"></i> <span class="favorite-text">Hapus dari Favorit</span>';
         }
         button.setAttribute("aria-label", "Hapus dari favorit");
+
+        // Add to favorites list if not already there
+        if (!this.favoriteStories.some((story) => story.id === storyId)) {
+          const story = this.allStories.find((story) => story.id === storyId);
+          if (story) {
+            this.favoriteStories.push(story);
+          }
+        }
       } else {
         button.classList.remove("favorited");
         // Safely update text content
@@ -374,6 +405,16 @@ class View {
             '<i class="fas fa-heart"></i> <span class="favorite-text">Tambah ke Favorit</span>';
         }
         button.setAttribute("aria-label", "Tambah ke favorit");
+
+        // Remove from favorites list
+        this.favoriteStories = this.favoriteStories.filter(
+          (story) => story.id !== storyId
+        );
+
+        // Reapply filter if we're currently viewing favorites
+        if (this.currentFilter === "favorites") {
+          this._applyFiltersAndSearch();
+        }
       }
 
       // Reset processing state
@@ -381,23 +422,113 @@ class View {
     }
   }
 
-  // Method to display only favorite stories
   displayFavoriteStories(favoriteStories) {
+    this.favoriteStories = [...favoriteStories];
+
+    // Set active tab to favorites
+    this.filterTabs.forEach((tab) => {
+      tab.classList.toggle(
+        "active",
+        tab.getAttribute("data-filter") === "favorites"
+      );
+    });
+
+    this.currentFilter = "favorites";
+    this._displayFilteredStories(favoriteStories);
+  }
+
+  setActiveFilter(filter) {
+    if (!["all", "newest", "oldest", "favorites"].includes(filter)) {
+      filter = "all";
+    }
+
+    this.currentFilter = filter;
+
+    // Update UI
+    this.filterTabs.forEach((tab) => {
+      tab.classList.toggle(
+        "active",
+        tab.getAttribute("data-filter") === filter
+      );
+    });
+
+    // Apply filter
+    this._applyFiltersAndSearch();
+  }
+
+  clearSearch() {
+    if (this.storySearch) {
+      this.storySearch.value = "";
+      this.searchQuery = "";
+      this._applyFiltersAndSearch();
+    }
+  }
+
+  _applyFiltersAndSearch() {
+    if (!this.allStories.length) return;
+
+    let filteredStories = [...this.allStories];
+
+    // Apply search if there's a query
+    if (this.searchQuery) {
+      filteredStories = filteredStories.filter((story) => {
+        return (
+          story.name.toLowerCase().includes(this.searchQuery) ||
+          story.description.toLowerCase().includes(this.searchQuery)
+        );
+      });
+    }
+
+    // Apply sorting/filtering based on current filter
+    switch (this.currentFilter) {
+      case "newest":
+        filteredStories.sort(
+          (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+        );
+        break;
+      case "oldest":
+        filteredStories.sort(
+          (a, b) => new Date(a.createdAt) - new Date(b.createdAt)
+        );
+        break;
+      case "favorites":
+        filteredStories = this.favoriteStories;
+        break;
+      default: // "all" - newest first by default
+        filteredStories.sort(
+          (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+        );
+    }
+
+    // Display the filtered stories
+    this._displayFilteredStories(filteredStories);
+  }
+
+  _displayFilteredStories(stories) {
     this.storyList.innerHTML = "";
     this.clearStoryMapMarkers();
 
-    if (favoriteStories.length === 0) {
+    if (stories.length === 0) {
+      let message = "Tidak ada cerita yang ditemukan";
+
+      if (this.searchQuery) {
+        message = `Tidak ada cerita yang cocok dengan "${this.searchQuery}"`;
+      } else if (this.currentFilter === "favorites") {
+        message = "Belum ada cerita favorit";
+      }
+
       this.storyList.innerHTML = `
         <div class="empty-state">
-          <i class="fas fa-heart-broken fa-3x"></i>
-          <h3>Belum Ada Cerita Favorit</h3>
-          <p>Tambahkan cerita ke favorit dari halaman beranda.</p>
+          <i class="fas fa-search fa-3x"></i>
+          <h3>${message}</h3>
+          <p>Coba dengan pencarian lain atau pilih filter yang berbeda.</p>
         </div>
       `;
       return;
     }
 
-    this.displayStories(favoriteStories, favoriteStories);
+    // Use the existing displayStories method, but pass filtered stories
+    this.displayStories(stories, this.favoriteStories);
   }
 
   async setupCamera() {
@@ -902,6 +1033,61 @@ class View {
     );
 
     this.storyMarkers.push(marker);
+  }
+
+  async reverseGeocode(lat, lon) {
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`
+      );
+      const data = await response.json();
+      return data.display_name || "Unknown location";
+    } catch (error) {
+      console.error("Error in reverse geocoding:", error);
+      return "Unknown location";
+    }
+  }
+
+  _setupStoryFilters() {
+    // Setup search functionality
+    if (this.storySearch && this.searchButton) {
+      this.searchButton.addEventListener("click", () => {
+        this.searchQuery = this.storySearch.value.trim().toLowerCase();
+        this._applyFiltersAndSearch();
+      });
+
+      this.storySearch.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          this.searchQuery = this.storySearch.value.trim().toLowerCase();
+          this._applyFiltersAndSearch();
+        }
+      });
+    }
+
+    // Setup filter tabs
+    if (this.filterTabs) {
+      this.filterTabs.forEach((tab) => {
+        tab.addEventListener("click", () => {
+          // Remove active class from all tabs
+          this.filterTabs.forEach((t) => t.classList.remove("active"));
+
+          // Add active class to clicked tab
+          tab.classList.add("active");
+
+          // Set current filter
+          this.currentFilter = tab.getAttribute("data-filter");
+
+          // Apply filter
+          this._applyFiltersAndSearch();
+
+          // Call callback if it exists
+          if (this.onFilterChange) {
+            this.onFilterChange(this.currentFilter);
+          }
+        });
+      });
+    }
   }
 }
 
