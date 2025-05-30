@@ -15,6 +15,12 @@ class View {
     this.navList = document.getElementById("nav-list");
     this.navLinks = document.querySelectorAll("nav a");
 
+    // Auth elements
+    this.authContainer = document.getElementById("auth-container");
+    this.appHeader = document.getElementById("app-header");
+    this.loginSection = document.getElementById("login");
+    this.registerSection = document.getElementById("register");
+
     this.map = null;
     this.storyMap = null;
     this.currentMarker = null;
@@ -32,6 +38,7 @@ class View {
 
     this._initializeEventListeners();
     this._setupImageErrorHandling();
+    this._setupAuthLinks();
   }
 
   _initializeEventListeners() {
@@ -98,9 +105,11 @@ class View {
         const submitBtn = e.target.querySelector('button[type="submit"]');
         this._setButtonLoading(submitBtn, true);
 
-        this.onRegisterSubmit(data).finally(() => {
-          this._setButtonLoading(submitBtn, false);
-        });
+        this.onRegisterSubmit(data)
+          .catch((err) => console.error("Register error:", err))
+          .finally(() => {
+            this._setButtonLoading(submitBtn, false);
+          });
       }
     });
 
@@ -117,9 +126,11 @@ class View {
         const submitBtn = e.target.querySelector('button[type="submit"]');
         this._setButtonLoading(submitBtn, true);
 
-        this.onLoginSubmit(data).finally(() => {
-          this._setButtonLoading(submitBtn, false);
-        });
+        this.onLoginSubmit(data)
+          .catch((err) => console.error("Login error:", err))
+          .finally(() => {
+            this._setButtonLoading(submitBtn, false);
+          });
       }
     });
 
@@ -186,19 +197,59 @@ class View {
     });
   }
 
-  updateNav(isLoggedIn) {
-    const loginNav = this.navList.querySelector(".login-nav");
-    const registerNav = this.navList.querySelector(".register-nav");
-    const logoutNav = this.navList.querySelector(".logout-nav");
+  _setupAuthLinks() {
+    // Set up event listeners for authentication links
+    document.querySelectorAll(".auth-switch a").forEach((link) => {
+      link.addEventListener("click", (e) => {
+        e.preventDefault();
+        const targetSection = link.getAttribute("href").substring(1);
+        this.showAuthSection(targetSection);
+        window.location.hash = targetSection; // Update URL hash
+      });
+    });
+  }
 
+  showAuthSection(section) {
+    // Hide both sections first
+    this.loginSection.classList.add("hidden");
+    this.registerSection.classList.add("hidden");
+
+    // Show the selected section
+    if (section === "login") {
+      this.loginSection.classList.remove("hidden");
+    } else if (section === "register") {
+      this.registerSection.classList.remove("hidden");
+    }
+  }
+
+  updateNav(isLoggedIn) {
     if (isLoggedIn) {
-      loginNav.classList.add("hidden");
-      registerNav.classList.add("hidden");
-      logoutNav.classList.remove("hidden");
+      // Show header with nav and hide auth container
+      this.appHeader.classList.remove("hidden");
+      this.authContainer.classList.add("hidden");
+
+      // Find the first available page to display
+      const firstPage = "home";
+      this.showPage(firstPage);
     } else {
-      loginNav.classList.remove("hidden");
-      registerNav.classList.remove("hidden");
-      logoutNav.classList.add("hidden");
+      // Hide header and show auth container
+      this.appHeader.classList.add("hidden");
+      this.authContainer.classList.remove("hidden");
+
+      // Get current hash or default to login
+      const currentHash = window.location.hash.slice(1) || "login";
+
+      // Show appropriate auth section
+      if (currentHash === "register") {
+        this.showAuthSection("register");
+      } else {
+        this.showAuthSection("login");
+      }
+
+      // Hide all content pages
+      this.pages.forEach((page) => {
+        page.classList.add("hidden");
+      });
     }
   }
 
@@ -396,7 +447,10 @@ class View {
       "aria-label",
       "Peta interaktif untuk memilih lokasi cerita"
     );
-    this.map = L.map(this.mapContainer).setView([-6.185931, 106.552764], 17);
+
+    // Tangerang coordinates
+    const tangerangCoordinates = [-6.1783, 106.6319];
+    this.map = L.map(this.mapContainer).setView(tangerangCoordinates, 13);
 
     // Tambahkan beragam tile layers
     const osm = L.tileLayer(
@@ -410,6 +464,16 @@ class View {
       "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
       {
         attribution: "© CartoDB",
+      }
+    );
+
+    const dark = L.tileLayer(
+      "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+      {
+        attribution:
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        subdomains: "abcd",
+        maxZoom: 20,
       }
     );
 
@@ -427,12 +491,14 @@ class View {
       }
     );
 
+    // Use OpenStreetMap as default
     osm.addTo(this.map);
 
     // Tambahkan layer control dengan lebih banyak opsi
     const baseLayers = {
       OpenStreetMap: osm,
-      "CartoDB Light": carto,
+      "Dark Theme": dark,
+      "Light Theme": carto,
       Satellite: satellite,
       Topographic: topo,
     };
@@ -451,18 +517,82 @@ class View {
   setupStoryMap() {
     if (this.storyMap) return this.storyMap;
 
+    // Indonesia's center coordinates and better zoom level
+    const indonesiaCenter = [-2.5, 118];
+    const zoomLevel = 5;
+
     this.storyMap = L.map(this.storyMapContainer, {
-      center: [-2.5489, 118.0149], // Indonesia center
-      zoom: 5,
+      center: indonesiaCenter,
+      zoom: zoomLevel,
       scrollWheelZoom: true,
       zoomControl: true,
+      maxBounds: [
+        [-13, 93], // Southwest corner (approximate bounds of Indonesia)
+        [8, 142], // Northeast corner
+      ],
+      minZoom: 5, // Prevent zooming out too far
     });
 
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      maxZoom: 19,
-    }).addTo(this.storyMap);
+    // Add multiple tile layers
+    const osm = L.tileLayer(
+      "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      {
+        attribution:
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19,
+      }
+    );
+
+    const dark = L.tileLayer(
+      "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+      {
+        attribution:
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        subdomains: "abcd",
+        maxZoom: 20,
+      }
+    );
+
+    const satellite = L.tileLayer(
+      "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      {
+        attribution: "© Esri",
+        maxZoom: 19,
+      }
+    );
+
+    const topo = L.tileLayer(
+      "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
+      {
+        attribution: "© OpenTopoMap contributors",
+        maxZoom: 19,
+      }
+    );
+
+    // Add CartoDB Light theme
+    const light = L.tileLayer(
+      "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+      {
+        attribution:
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        subdomains: "abcd",
+        maxZoom: 20,
+      }
+    );
+
+    // Use OpenStreetMap as default
+    osm.addTo(this.storyMap);
+
+    // Add layer control
+    const baseLayers = {
+      OpenStreetMap: osm,
+      "Dark Theme": dark,
+      "Light Theme": light,
+      Satellite: satellite,
+      Topographic: topo,
+    };
+
+    L.control.layers(baseLayers).addTo(this.storyMap);
 
     // Add fullscreen control
     if (L.control.fullscreen) {
@@ -530,22 +660,47 @@ class View {
   }
 
   showMessage(message, isError = false) {
-    Swal.fire({
-      title: isError ? "Gagal!" : "Success!",
-      text: message,
-      icon: isError ? "error" : "success",
-      confirmButtonColor: "#3B82F6",
-      timer: isError ? undefined : 2000,
-      showConfirmButton: isError,
-      background: isError ? "#2d3536" : "#2d3536", // Same dark background for both
-      color: "#ffffff", // White text
-      iconColor: isError ? "#dc3545" : "#4BB543", // Red for error, green for success
-      customClass: {
-        popup: isError ? "error-popup" : "success-popup",
-        title: isError ? "error-title" : "success-title",
-        content: isError ? "error-content" : "success-content",
-      },
-    });
+    console.log(`Showing message: ${message}, isError: ${isError}`);
+
+    // Check if SweetAlert2 is available
+    if (typeof Swal === "undefined") {
+      console.error("SweetAlert2 is not loaded. Falling back to alert.");
+      alert(message);
+      return;
+    }
+
+    try {
+      Swal.fire({
+        title: isError ? "Gagal!" : "Sukses!",
+        text: message,
+        icon: isError ? "error" : "success",
+        confirmButtonColor: "#3B82F6",
+        timer: isError ? undefined : 2000,
+        showConfirmButton: isError,
+        background: "#2d3536", // Dark background
+        color: "#ffffff", // White text
+        iconColor: isError ? "#dc3545" : "#4BB543", // Red for error, green for success
+        position: "top", // Changed from top-end to top to avoid header overlap
+        toast: !isError,
+        timerProgressBar: !isError,
+        // Add custom padding to avoid header overlap
+        customClass: {
+          container: "swal2-container-custom",
+          popup: "swal2-popup-custom",
+        },
+        // Add padding to the top to avoid header overlap
+        padding: "1em",
+        // Ensure toast is shown below the header
+        didOpen: (toast) => {
+          if (!isError) {
+            toast.style.marginTop = "70px";
+          }
+        },
+      });
+    } catch (error) {
+      console.error("Error showing SweetAlert2 message:", error);
+      alert(message);
+    }
   }
 
   resetStoryForm() {
@@ -690,13 +845,20 @@ class View {
     if (isLoading) {
       button.disabled = true;
       button.classList.add("loading");
-      button.dataset.originalText = button.innerHTML;
+      // Store original text
+      if (!button.dataset.originalText) {
+        button.dataset.originalText = button.innerHTML;
+      }
+      // Clear text when loading
       button.innerHTML = "";
     } else {
       button.disabled = false;
       button.classList.remove("loading");
+      // Restore original text
       if (button.dataset.originalText) {
         button.innerHTML = button.dataset.originalText;
+        // Clean up
+        delete button.dataset.originalText;
       }
     }
   }
@@ -704,16 +866,41 @@ class View {
   addStoryMarker(story) {
     if (!this.storyMap || !story.lat || !story.lon) return;
 
-    const marker = L.marker([story.lat, story.lon]).addTo(this.storyMap);
-    marker.bindPopup(`
-      <b>${story.name}</b><br>
-      ${story.description.substring(0, 100)}${
-      story.description.length > 100 ? "..." : ""
-    }<br>
-      <img src="${story.photoUrl}" alt="Foto cerita ${
-      story.name
-    }" style="max-width: 100px; max-height: 100px; margin-top: 8px;">
-    `);
+    // Create a custom icon with a more visible design
+    const storyIcon = L.divIcon({
+      html: `<div class="custom-marker"><i class="fas fa-map-marker-alt"></i></div>`,
+      className: "story-marker-icon",
+      iconSize: [30, 42],
+      iconAnchor: [15, 42],
+      popupAnchor: [0, -42],
+    });
+
+    const marker = L.marker([story.lat, story.lon], { icon: storyIcon }).addTo(
+      this.storyMap
+    );
+    marker.bindPopup(
+      `
+      <div class="marker-popup">
+        <h4>${story.name}</h4>
+        <p>${story.description.substring(0, 100)}${
+        story.description.length > 100 ? "..." : ""
+      }</p>
+        <div class="popup-image">
+          <img src="${story.photoUrl}" alt="Foto cerita ${
+        story.name
+      }" style="max-width: 100%; max-height: 120px; object-fit: cover; border-radius: 4px;">
+        </div>
+        <p class="popup-date">Dibuat: ${new Date(
+          story.createdAt
+        ).toLocaleDateString("id-ID")}</p>
+      </div>
+    `,
+      {
+        maxWidth: 300,
+        className: "story-popup",
+      }
+    );
+
     this.storyMarkers.push(marker);
   }
 }

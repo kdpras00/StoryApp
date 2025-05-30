@@ -32,7 +32,9 @@ class Presenter {
 
     if (this.model.isLoggedIn()) {
       await this.loadStories();
+      this.view.navigateTo("home");
     } else {
+      // For non-authenticated users, always show login first
       this.view.navigateTo("login");
     }
 
@@ -44,30 +46,47 @@ class Presenter {
     this.location = { lat: latlng.lat, lng: latlng.lng };
     this.view.updateMapMarker(latlng);
 
+    // Show immediate feedback that location was selected
+    this.view.showMessage(
+      `Lokasi dipilih: ${latlng.lat.toFixed(6)}, ${latlng.lng.toFixed(6)}`,
+      false
+    );
+
     // Try to get location name if geocoder is available
     this.reverseGeocode(latlng.lat, latlng.lng)
       .then((locationName) => {
         if (locationName) {
+          // Update message with location name once geocoding is complete
           this.view.showMessage(`Lokasi dipilih: ${locationName}`, false);
         }
       })
-      .catch(() => {
-        // Silently fail if geocoding doesn't work
+      .catch((error) => {
+        console.error("Error in geocoding:", error);
+        // We already showed a success message, so no need to show an error
       });
   }
 
   async reverseGeocode(lat, lng) {
     try {
+      console.log("Starting reverse geocoding for:", lat, lng);
+
       // Use Nominatim OpenStreetMap service for reverse geocoding
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
+        {
+          headers: {
+            Accept: "application/json",
+            "User-Agent": "StoryApp/1.0", // Nominatim requires a user agent
+          },
+        }
       );
 
       if (!response.ok) {
-        throw new Error("Geocoding service error");
+        throw new Error(`Geocoding service error: ${response.status}`);
       }
 
       const data = await response.json();
+      console.log("Geocoding response:", data);
 
       // Extract location name
       if (data && data.display_name) {
@@ -255,32 +274,46 @@ class Presenter {
   }
 
   handleRouteChange() {
-    const hash = this.view.getCurrentHash();
-    const previousHash = this._currentHash;
-    this._currentHash = hash;
+    const hash = window.location.hash.slice(1) || "login";
 
+    // If trying to access protected pages without being logged in
     if (
       !this.model.isLoggedIn() &&
       (hash === "home" || hash === "add-story" || hash === "favorites")
     ) {
+      this.view.showMessage("Silakan login terlebih dahulu", true);
       this.view.navigateTo("login");
       return;
     }
 
-    if (
-      !["home", "add-story", "login", "register", "favorites"].includes(hash)
-    ) {
-      this.showNotFoundPage();
+    // Special handling for login/register when user is already logged in
+    if (this.model.isLoggedIn() && (hash === "login" || hash === "register")) {
+      this.view.navigateTo("home");
       return;
     }
 
-    if (previousHash === "add-story" && hash !== "add-story") {
-      this.view.stopCamera();
+    // Handle auth section navigation for non-logged in users
+    if (!this.model.isLoggedIn() && (hash === "login" || hash === "register")) {
+      this.view.showAuthSection(hash);
+      return;
     }
 
-    this.view.handlePageViewTransition(hash, async () => {
-      await this.handlePageSpecificSetup(hash);
-    });
+    if (hash === "logout") {
+      this.handleLogout();
+      return;
+    }
+
+    // For actual page navigation
+    const pageElement = document.getElementById(hash);
+    if (pageElement && pageElement.classList.contains("page")) {
+      this.view.handlePageViewTransition(hash, () => {
+        this.handlePageSpecificSetup(hash);
+      });
+    } else {
+      this.showNotFoundPage();
+    }
+
+    this._currentHash = hash;
   }
 
   showNotFoundPage() {

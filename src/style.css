@@ -17,12 +17,29 @@ body {
 /* Tambahkan font Poppins */
 @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap");
 
+/* Authentication Wrapper */
+.auth-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 1.5rem;
+  animation: fadeIn 0.5s ease-in;
+}
+
+.app-title {
+  font-size: 2rem;
+  margin-bottom: 2rem;
+  color: #ffffff;
+  text-align: center;
+}
+
 .auth-section {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: calc(100vh - 100px);
-  padding: 2rem;
+  width: 100%;
   animation: fadeIn 0.5s ease-in;
 }
 
@@ -64,25 +81,26 @@ body {
 .auth-switch {
   text-align: center;
   margin-top: 1.5rem;
-  color: #a0a0a0; /* Abu-abu untuk teks */
+  color: #a0a0a0;
   font-size: 0.9rem;
 }
 
 .auth-switch a {
-  color: #e0e0e0; /* Abu-abu terang untuk link */
+  color: #0275d8;
   text-decoration: none;
   font-weight: 500;
   transition: color 0.3s ease;
 }
 
 .auth-switch a:hover {
-  color: #ffffff; /* Putih saat hover */
+  color: #025aa5;
   text-decoration: underline;
 }
 
 .page {
   display: none;
   animation: fadeIn 0.5s ease-in;
+  padding-top: 2rem;
 }
 
 .page:not(.hidden) {
@@ -207,6 +225,11 @@ main {
   padding: 7rem 2rem 2rem;
   max-width: 1200px;
   margin: 0 auto;
+}
+
+/* Adjust main padding when auth-container is visible */
+main:has(#auth-container:not(.hidden)) {
+  padding: 0;
 }
 
 #story-list {
@@ -496,11 +519,13 @@ button:active {
   border-color: #025aa5;
 }
 
-/* Button loading state */
+/* Button loading state with better visibility */
 button.loading {
   position: relative;
-  color: transparent;
+  color: transparent !important;
+  background-color: #0275d8 !important;
   pointer-events: none;
+  transition: all 0.3s ease;
 }
 
 button.loading::after {
@@ -519,7 +544,7 @@ button.loading::after {
 
 @keyframes spin {
   to {
-    transform: rotate(360deg);
+    transform: translate(-50%, -50%) rotate(360deg);
   }
 }
 
@@ -729,27 +754,6 @@ button.loading::after {
   100% {
     transform: scale(1);
   }
-}
-
-/* Button loading state with better visibility */
-button.loading {
-  position: relative;
-  color: transparent;
-  pointer-events: none;
-}
-
-button.loading::after {
-  content: "";
-  position: absolute;
-  width: 1.2rem;
-  height: 1.2rem;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-radius: 50%;
-  border-top-color: #fff;
-  animation: spin 0.8s linear infinite;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
 }
 
 /* Location display */
@@ -977,4 +981,140 @@ button.loading::after {
 
 .error-popup {
   animation: shakeError 0.6s;
+}
+
+/* Custom Map Markers and Popups */
+.story-marker-icon {
+  background: none;
+  border: none;
+}
+
+.custom-marker {
+  width: 30px;
+  height: 30px;
+  background-color: #3b82f6;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+  border: 2px solid white;
+  color: white;
+  position: relative;
+}
+
+.custom-marker::after {
+  content: "";
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 8px solid #3b82f6;
+}
+
+.custom-marker i {
+  font-size: 16px;
+}
+
+.story-popup {
+  padding: 0;
+}
+
+.marker-popup {
+  padding: 10px;
+  font-family: Arial, sans-serif;
+}
+
+.marker-popup h4 {
+  margin: 0 0 8px 0;
+  color: #3b82f6;
+  font-size: 16px;
+}
+
+.marker-popup p {
+  margin: 0 0 10px 0;
+  line-height: 1.4;
+  font-size: 14px;
+}
+
+.popup-image {
+  margin: 10px 0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.popup-date {
+  font-size: 12px;
+  color: #6c757d;
+  margin-top: 8px;
+  text-align: right;
+}
+
+/* Dark theme overrides for popups */
+.leaflet-popup-content-wrapper {
+  background-color: #2d3536;
+  color: #e0e0e0;
+  border-radius: 8px;
+}
+
+.leaflet-popup-tip {
+  background-color: #2d3536;
+}
+
+.marker-popup h4 {
+  color: #60a5fa;
+}
+
+.popup-date {
+  color: #a0a0a0;
+}
+
+/* Enhanced map controls */
+.leaflet-control-layers {
+  background-color: #2d3536 !important;
+  border-radius: 8px !important;
+  border: 1px solid #444 !important;
+  color: #e0e0e0 !important;
+}
+
+.leaflet-control-layers-toggle {
+  background-color: #2d3536 !important;
+  border-radius: 4px !important;
+}
+
+.leaflet-control-layers-expanded {
+  padding: 8px !important;
+}
+
+.leaflet-control-zoom {
+  border-radius: 8px !important;
+  overflow: hidden;
+}
+
+.leaflet-control-zoom a {
+  background-color: #2d3536 !important;
+  color: #e0e0e0 !important;
+  border-color: #444 !important;
+}
+
+.leaflet-control-zoom a:hover {
+  background-color: #3d4546 !important;
+}
+
+/* Custom SweetAlert2 positioning to avoid header overlap */
+.swal2-container-custom {
+  z-index: 10000 !important;
+}
+
+.swal2-popup-custom {
+  margin-top: 70px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Toast notification specific styling */
+.swal2-toast {
+  padding: 1rem !important;
+  margin-top: 70px !important; /* Ensure it's below the header */
 }
