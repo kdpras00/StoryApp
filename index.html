@@ -9,9 +9,18 @@
       rel="stylesheet"
       href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"
     />
-    <!-- Hapus baris berikut: -->
-    <!-- <link rel="stylesheet" href="/style.css"> -->
+    <!-- Add CSS file -->
+    <link rel="stylesheet" href="src/style.css">
+    <!-- Leaflet plugins -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-fullscreen@1.0.2/dist/leaflet.fullscreen.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.locatecontrol@0.79.0/dist/L.Control.Locate.min.css" />
+    
     <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+    <script src="https://unpkg.com/leaflet-fullscreen@1.0.2/dist/Leaflet.fullscreen.min.js"></script>
+    <script src="https://unpkg.com/leaflet.locatecontrol@0.79.0/dist/L.Control.Locate.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   </head>
 
@@ -83,6 +92,7 @@
           <div class="form-group">
             <label><i class="fas fa-map-marker-alt"></i> Pilih Lokasi</label>
             <div id="map" style="height: 400px"></div>
+            <p class="location-hint"><small><i class="fas fa-info-circle"></i> Klik pada peta untuk menentukan lokasi cerita</small></p>
           </div>
 
           <button type="submit" class="btn-primary">
@@ -106,6 +116,7 @@
                 name="email"
                 required
                 aria-label="Email untuk login"
+                placeholder="Masukkan email Anda"
               />
             </div>
             <div class="form-group">
@@ -118,6 +129,7 @@
                 name="password"
                 required
                 aria-label="Kata sandi untuk login"
+                placeholder="Masukkan password Anda"
               />
               <i
                 class="fas fa-eye toggle-password"
@@ -150,6 +162,7 @@
                 name="name"
                 required
                 aria-label="Nama pengguna"
+                placeholder="Masukkan nama Anda"
               />
             </div>
             <div class="form-group">
@@ -162,6 +175,7 @@
                 name="email"
                 required
                 aria-label="Email untuk registrasi"
+                placeholder="Masukkan email Anda"
               />
             </div>
             <div class="form-group">
@@ -174,6 +188,7 @@
                 name="password"
                 required
                 aria-label="Kata sandi untuk registrasi"
+                placeholder="Minimal 6 karakter"
               />
               <i
                 class="fas fa-eye toggle-password"

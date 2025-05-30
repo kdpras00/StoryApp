@@ -1,6 +1,7 @@
-import { urlBase64ToUint8Array } from './utils.js';
+import { urlBase64ToUint8Array } from "./utils.js";
 
-const VAPID_PUBLIC_KEY = 'BCCs2eonMI-6H2ctvFaWg-UYdDv387Vno_bzUzALpB442r2lCnsHmtrx8biyPi_E-1fSGABK_Qs_GlvPoJJqxbk';
+const VAPID_PUBLIC_KEY =
+  "BCCs2eonMI-6H2ctvFaWg-UYdDv387Vno_bzUzALpB442r2lCnsHmtrx8biyPi_E-1fSGABK_Qs_GlvPoJJqxbk";
 
 class Presenter {
   constructor(model, view) {
@@ -9,7 +10,9 @@ class Presenter {
     this.location = { lat: null, lng: null };
     this.map = null;
     this._currentHash = null;
-    
+    this.geocoder = null;
+    this._processingFavorites = {};
+
     // Bind event handlers
     this.view.onFavoriteClick = this.handleFavoriteClick.bind(this);
     this.view.onRegisterSubmit = this.handleRegisterSubmit.bind(this);
@@ -18,7 +21,7 @@ class Presenter {
     this.view.onCaptureClick = this.handleCaptureClick.bind(this);
     this.view.onNavLinkClick = this.handleNavLinkClick.bind(this);
     this.view.onMapClick = this.handleMapClick.bind(this);
-    
+
     this.init();
   }
 
@@ -26,20 +29,59 @@ class Presenter {
     await this.setupPushNotification();
     this.view.updateNav(this.model.isLoggedIn());
     this.setupRouting();
-    
+
     if (this.model.isLoggedIn()) {
       await this.loadStories();
     } else {
-      this.view.navigateTo('login');
+      this.view.navigateTo("login");
     }
-    
-    window.addEventListener('hashchange', this.handleRouteChange.bind(this));
+
+    window.addEventListener("hashchange", this.handleRouteChange.bind(this));
     this.handleRouteChange();
   }
 
   handleMapClick(latlng) {
     this.location = { lat: latlng.lat, lng: latlng.lng };
     this.view.updateMapMarker(latlng);
+
+    // Try to get location name if geocoder is available
+    this.reverseGeocode(latlng.lat, latlng.lng)
+      .then((locationName) => {
+        if (locationName) {
+          this.view.showMessage(`Lokasi dipilih: ${locationName}`, false);
+        }
+      })
+      .catch(() => {
+        // Silently fail if geocoding doesn't work
+      });
+  }
+
+  async reverseGeocode(lat, lng) {
+    try {
+      // Use Nominatim OpenStreetMap service for reverse geocoding
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`
+      );
+
+      if (!response.ok) {
+        throw new Error("Geocoding service error");
+      }
+
+      const data = await response.json();
+
+      // Extract location name
+      if (data && data.display_name) {
+        // Get a simplified version of the address
+        const parts = data.display_name.split(", ");
+        // Return only the first 2-3 parts for readability
+        return parts.slice(0, 3).join(", ");
+      }
+
+      return null;
+    } catch (error) {
+      console.error("Reverse geocoding error:", error);
+      return null;
+    }
   }
 
   handleCaptureClick() {
@@ -47,60 +89,89 @@ class Presenter {
     if (imageData) {
       this.view.showImagePreview(imageData);
     } else {
-      this.view.showMessage('Gagal mengambil gambar dari kamera.', true);
+      this.view.showMessage("Gagal mengambil gambar dari kamera.", true);
     }
   }
 
   async handleRegisterSubmit(data) {
     try {
+      // Validate input
+      if (!data.name || !data.email || !data.password) {
+        this.view.showMessage("Semua field harus diisi.", true);
+        return;
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(data.email)) {
+        this.view.showMessage("Format email tidak valid.", true);
+        return;
+      }
+
+      // Validate password length
+      if (data.password.length < 6) {
+        this.view.showMessage("Password minimal 6 karakter.", true);
+        return;
+      }
+
       const result = await this.model.register(data);
       this.view.showMessage(result.message, result.error);
       if (!result.error) {
-        this.view.navigateTo('login');
+        this.view.navigateTo("login");
       }
+      return result;
     } catch (error) {
-      this.view.showMessage('Gagal mendaftar: ' + error.message, true);
+      this.view.showMessage("Gagal mendaftar: " + error.message, true);
+      throw error;
     }
   }
 
   async handleLoginSubmit(data) {
     try {
+      // Validate input
+      if (!data.email || !data.password) {
+        this.view.showMessage("Email dan password harus diisi.", true);
+        return;
+      }
+
       const result = await this.model.login(data);
       this.view.showMessage(result.message, result.error);
       if (!result.error) {
         this.view.updateNav(true);
-        this.view.navigateTo('home');
+        this.view.navigateTo("home");
         await this.loadStories();
-        
+
         // Setup push notification after successful login
-        if (Notification.permission === 'granted') {
+        if (Notification.permission === "granted") {
           const registration = await navigator.serviceWorker.getRegistration();
           if (registration) {
             await this.subscribeToPush(registration);
           }
         }
       }
+      return result;
     } catch (error) {
-      this.view.showMessage('Gagal login: ' + error.message, true);
+      this.view.showMessage("Gagal login: " + error.message, true);
+      throw error;
     }
   }
 
   async handleStorySubmit(storyData) {
     if (!this.model.isLoggedIn()) {
-      this.view.showMessage('Silakan login terlebih dahulu', true);
-      this.view.navigateTo('login');
+      this.view.showMessage("Silakan login terlebih dahulu", true);
+      this.view.navigateTo("login");
       return;
     }
 
     const { description, photoFile, imageData } = storyData;
 
     if (!description) {
-      this.view.showMessage('Deskripsi tidak boleh kosong.', true);
+      this.view.showMessage("Deskripsi tidak boleh kosong.", true);
       return;
     }
 
     if (!this.location.lat || !this.location.lng) {
-      this.view.showMessage('Harap pilih lokasi di peta.', true);
+      this.view.showMessage("Harap pilih lokasi di peta.", true);
       return;
     }
 
@@ -109,7 +180,7 @@ class Presenter {
 
     if (photoFile) {
       if (photoFile.size > 1 * 1024 * 1024) {
-        this.view.showMessage('Ukuran foto terlalu besar. Maksimal 1MB.', true);
+        this.view.showMessage("Ukuran foto terlalu besar. Maksimal 1MB.", true);
         return;
       }
       photoBlob = photoFile;
@@ -117,22 +188,25 @@ class Presenter {
       try {
         photoBlob = await (await fetch(imageData)).blob();
         if (photoBlob.size > 1 * 1024 * 1024) {
-          this.view.showMessage('Ukuran foto terlalu besar. Maksimal 1MB.', true);
+          this.view.showMessage(
+            "Ukuran foto terlalu besar. Maksimal 1MB.",
+            true
+          );
           return;
         }
       } catch (error) {
-        this.view.showMessage('Gagal memproses gambar dari kamera.', true);
+        this.view.showMessage("Gagal memproses gambar dari kamera.", true);
         return;
       }
     } else {
-      this.view.showMessage('Harap pilih foto atau ambil gambar.', true);
+      this.view.showMessage("Harap pilih foto atau ambil gambar.", true);
       return;
     }
 
-    formData.append('description', description);
-    formData.append('photo', photoBlob, 'story.jpg');
-    formData.append('lat', this.location.lat);
-    formData.append('lon', this.location.lng);
+    formData.append("description", description);
+    formData.append("photo", photoBlob, "story.jpg");
+    formData.append("lat", this.location.lat);
+    formData.append("lon", this.location.lng);
 
     try {
       const result = await this.model.addStory(formData);
@@ -140,10 +214,12 @@ class Presenter {
       if (!result.error) {
         this.cleanupAfterStorySubmit();
         await this.loadStories();
-        this.view.navigateTo('home');
+        this.view.navigateTo("home");
       }
+      return result;
     } catch (error) {
-      this.view.showMessage('Gagal menambahkan cerita: ' + error.message, true);
+      this.view.showMessage("Gagal menambahkan cerita: " + error.message, true);
+      throw error;
     }
   }
 
@@ -155,11 +231,16 @@ class Presenter {
   }
 
   handleNavLinkClick(event, targetPage) {
-    if (!this.model.isLoggedIn() && (targetPage === 'home' || targetPage === 'add-story' || targetPage === 'favorites')) {
+    if (
+      !this.model.isLoggedIn() &&
+      (targetPage === "home" ||
+        targetPage === "add-story" ||
+        targetPage === "favorites")
+    ) {
       event.preventDefault();
-      this.view.showMessage('Silakan login terlebih dahulu', true);
-      this.view.navigateTo('login');
-    } else if (targetPage === 'logout') {
+      this.view.showMessage("Silakan login terlebih dahulu", true);
+      this.view.navigateTo("login");
+    } else if (targetPage === "logout") {
       event.preventDefault();
       this.handleLogout();
     }
@@ -169,62 +250,73 @@ class Presenter {
     this.model.logout();
     this.view.updateNav(false);
     this.view.stopCamera();
-    this.view.showMessage('Berhasil logout', false);
-    this.view.navigateTo('login');
+    this.view.showMessage("Berhasil logout", false);
+    this.view.navigateTo("login");
   }
 
   handleRouteChange() {
     const hash = this.view.getCurrentHash();
     const previousHash = this._currentHash;
     this._currentHash = hash;
-    
-    if (!this.model.isLoggedIn() && (hash === 'home' || hash === 'add-story' || hash === 'favorites')) {
-      this.view.navigateTo('login');
+
+    if (
+      !this.model.isLoggedIn() &&
+      (hash === "home" || hash === "add-story" || hash === "favorites")
+    ) {
+      this.view.navigateTo("login");
       return;
     }
 
-    if (!['home', 'add-story', 'login', 'register', 'favorites'].includes(hash)) {
+    if (
+      !["home", "add-story", "login", "register", "favorites"].includes(hash)
+    ) {
       this.showNotFoundPage();
       return;
     }
-    
-    if (previousHash === 'add-story' && hash !== 'add-story') {
+
+    if (previousHash === "add-story" && hash !== "add-story") {
       this.view.stopCamera();
     }
-    
+
     this.view.handlePageViewTransition(hash, async () => {
       await this.handlePageSpecificSetup(hash);
     });
   }
 
   showNotFoundPage() {
-    const notFoundPage = document.getElementById('not-found');
+    const notFoundPage = document.getElementById("not-found");
     if (notFoundPage) {
-      this.view.showPage('not-found');
+      this.view.showPage("not-found");
     } else {
       // If no not-found page exists, redirect to home or login
       if (this.model.isLoggedIn()) {
-        this.view.navigateTo('home');
+        this.view.navigateTo("home");
       } else {
-        this.view.navigateTo('login');
+        this.view.navigateTo("login");
       }
     }
-    this.view.showMessage('Halaman tidak ditemukan', true);
+    this.view.showMessage("Halaman tidak ditemukan", true);
   }
 
   async handlePageSpecificSetup(pageId) {
     switch (pageId) {
-      case 'home':
-        await this.loadStories();
-        if (!this.view.storyMap) {
-          this.view.setupStoryMap();
+      case "home":
+        if (this.model.isLoggedIn()) {
+          await this.loadStories();
+          if (!this.view.storyMap) {
+            this.view.setupStoryMap();
+          }
         }
         break;
-      case 'add-story':
-        await this.setupAddStoryPage();
+      case "add-story":
+        if (this.model.isLoggedIn()) {
+          await this.setupAddStoryPage();
+        }
         break;
-      case 'favorites':
-        await this.loadFavoriteStories();
+      case "favorites":
+        if (this.model.isLoggedIn()) {
+          await this.loadFavoriteStories();
+        }
         break;
       default:
         this.view.stopCamera();
@@ -233,135 +325,190 @@ class Presenter {
   }
 
   async setupAddStoryPage() {
+    this.view.setupMap();
     try {
       await this.view.setupCamera();
-      if (!this.map) {
-        this.map = this.view.setupMap();
-      }
-      this.location = { lat: null, lng: null };
-      this.view.clearMapMarkers();
     } catch (error) {
-      this.view.showMessage('Kamera tidak tersedia', true);
+      console.error("Camera setup error:", error);
+      this.view.showMessage(
+        "Kamera tidak tersedia. Gunakan upload foto.",
+        true
+      );
     }
   }
 
   async loadStories() {
-    if (!this.model.isLoggedIn()) return;
-    
     try {
       const stories = await this.model.fetchStories();
       const favorites = await this.model.getFavorites();
       this.view.displayStories(stories, favorites);
     } catch (error) {
-      this.view.showMessage('Gagal memuat cerita: ' + error.message, true);
+      console.error("Load stories error:", error);
+      this.view.showMessage("Gagal memuat cerita. Coba lagi nanti.", true);
     }
   }
 
   async loadFavoriteStories() {
-    if (!this.model.isLoggedIn()) return;
-    
     try {
       const favorites = await this.model.getFavorites();
       this.view.displayFavoriteStories(favorites);
     } catch (error) {
-      this.view.showMessage('Gagal memuat cerita favorit: ' + error.message, true);
+      console.error("Load favorite stories error:", error);
+      this.view.showMessage(
+        "Gagal memuat cerita favorit. Coba lagi nanti.",
+        true
+      );
     }
   }
 
   async setupPushNotification() {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-      console.log('Push notifications not supported in this browser');
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+      console.log("Push notifications not supported in this browser");
       return;
     }
-  
+
     try {
-      const registration = await navigator.serviceWorker.register('/sw.js');
+      const registration = await navigator.serviceWorker.register("/sw.js");
       const permissionStatus = Notification.permission;
-      
+
       switch (permissionStatus) {
-        case 'granted':
+        case "granted":
           await this.subscribeToPush(registration);
           this.view.updateNotificationUI(true);
           break;
-        case 'denied':
-          console.log('Push notification permission was denied');
+        case "denied":
+          console.log("Push notification permission was denied");
           this.view.updateNotificationUI(false);
           break;
-        case 'default':
+        case "default":
         default:
-          this.view.setupNotificationButton(() => this.requestNotificationPermission(registration));
+          this.view.setupNotificationButton(() =>
+            this.requestNotificationPermission(registration)
+          );
           this.view.updateNotificationUI(false);
           break;
       }
     } catch (error) {
-      console.error('Service worker registration failed:', error);
+      console.error("Service worker registration failed:", error);
     }
   }
 
   async requestNotificationPermission(registration) {
     try {
       const permission = await Notification.requestPermission();
-      
-      if (permission === 'granted') {
+
+      if (permission === "granted") {
         await this.subscribeToPush(registration);
-        this.view.showMessage('Notifikasi berhasil diaktifkan!', false);
+        this.view.showMessage("Notifikasi berhasil diaktifkan!", false);
         this.view.updateNotificationUI(true);
       } else {
-        this.view.showMessage('Notifikasi tidak diaktifkan', false);
+        this.view.showMessage("Notifikasi tidak diaktifkan", false);
         this.view.updateNotificationUI(false);
       }
     } catch (error) {
-      console.error('Permission request failed:', error);
-      this.view.showMessage('Gagal meminta izin notifikasi', true);
+      console.error("Permission request failed:", error);
+      this.view.showMessage("Gagal meminta izin notifikasi", true);
       this.view.updateNotificationUI(false);
     }
   }
-  
+
   async subscribeToPush(registration) {
     try {
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
       });
-      
+
       if (this.model.isLoggedIn()) {
         await this.model.subscribePush(subscription);
-        console.log('Push notification subscription successful');
+        console.log("Push notification subscription successful");
       }
     } catch (error) {
-      console.error('Push subscription failed:', error);
+      console.error("Push subscription failed:", error);
       this.view.updateNotificationUI(false);
     }
   }
 
   async handleFavoriteClick(story, addToFavorite) {
-    if (!this.model.isLoggedIn()) {
-      this.view.showMessage('Silakan login terlebih dahulu', true);
-      this.view.navigateTo('login');
-      return;
+    // Prevent multiple simultaneous favorite operations on the same story
+    if (this._processingFavorites && this._processingFavorites[story.id]) {
+      console.log("Favorite operation already in progress for this story");
+      return false;
     }
-    
+
+    // Initialize processing tracker if needed
+    if (!this._processingFavorites) {
+      this._processingFavorites = {};
+    }
+
+    // Mark this story as being processed
+    this._processingFavorites[story.id] = true;
+
     try {
+      let result;
+
+      // Check if story is already in favorites
+      const isInFavorites = await this.model.isStoryFavorited(story.id);
+
       if (addToFavorite) {
-        await this.model.addStoryToFavorites(story);
-        this.view.showMessage('Cerita ditambahkan ke favorit', false);
+        // If we're trying to add and it's already in favorites, just return success
+        if (isInFavorites) {
+          this.view.updateFavoriteButton(story.id, true);
+          return true;
+        }
+
+        result = await this.model.addStoryToFavorites(story);
+        if (result) {
+          this.view.updateFavoriteButton(story.id, true);
+          this.view.showMessage(
+            `Cerita "${story.name}" ditambahkan ke favorit.`,
+            false
+          );
+        } else {
+          // This is the case when the operation fails
+          this.view.showMessage(
+            `Cerita "${story.name}" gagal ditambahkan ke favorit.`,
+            true
+          );
+          // Don't update the button state since the operation failed
+        }
       } else {
-        await this.model.removeStoryFromFavorites(story.id);
-        this.view.showMessage('Cerita dihapus dari favorit', false);
+        // If we're trying to remove and it's not in favorites, just return success
+        if (!isInFavorites) {
+          this.view.updateFavoriteButton(story.id, false);
+          return true;
+        }
+
+        result = await this.model.removeStoryFromFavorites(story.id);
+        if (result) {
+          this.view.updateFavoriteButton(story.id, false);
+          this.view.showMessage(
+            `Cerita "${story.name}" dihapus dari favorit.`,
+            false
+          );
+        } else {
+          this.view.showMessage(
+            `Cerita "${story.name}" gagal dihapus dari favorit.`,
+            true
+          );
+          // Don't update the button state since the operation failed
+        }
       }
-      
-      // Update the specific button state immediately
-      this.view.updateFavoriteButton(story.id, addToFavorite);
-      
-      // Reload stories to ensure consistency
-      const currentHash = this.view.getCurrentHash();
-      if (currentHash === 'favorites') {
-        await this.loadFavoriteStories();
-      } else {
-        await this.loadStories();
-      }
+      return result;
     } catch (error) {
-      this.view.showMessage('Gagal memperbarui favorit: ' + error.message, true);
+      console.error("Favorite action error:", error);
+      this.view.showMessage(
+        `Gagal ${addToFavorite ? "menambahkan" : "menghapus"} cerita "${
+          story.name
+        }" ${addToFavorite ? "ke" : "dari"} favorit.`,
+        true
+      );
+      throw error;
+    } finally {
+      // Clear processing state regardless of success/failure
+      if (this._processingFavorites) {
+        this._processingFavorites[story.id] = false;
+      }
     }
   }
 
