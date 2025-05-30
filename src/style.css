@@ -172,7 +172,8 @@ nav a:hover {
 }
 
 /* Map styling yang lebih modern */
-#map, #story-map {
+#map,
+#story-map {
   width: 100%;
   height: 400px;
   border-radius: 16px;
@@ -183,7 +184,8 @@ nav a:hover {
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-#map:hover, #story-map:hover {
+#map:hover,
+#story-map:hover {
   transform: translateY(-4px);
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
 }
@@ -195,43 +197,44 @@ nav a:hover {
     flex-direction: column;
     align-items: center;
   }
-  
+
   header h1 {
     margin-right: 0;
     margin-bottom: 0.8rem;
   }
-  
+
   .nav-container {
     flex-direction: column;
     width: 100%;
   }
-  
+
   nav ul {
     width: 100%;
     justify-content: center;
     margin-top: 0.8rem;
   }
-  
-  .left-nav, .right-nav {
+
+  .left-nav,
+  .right-nav {
     justify-content: center;
     width: 100%;
   }
-  
+
   .right-nav {
     margin-top: 0.8rem;
   }
-  
+
   .leaflet-control-zoom,
   .leaflet-control-layers {
     position: fixed !important;
     z-index: 1000 !important;
   }
-  
+
   .leaflet-control-zoom {
     bottom: 80px !important;
     right: 10px !important;
   }
-  
+
   .leaflet-control-layers {
     bottom: 150px !important;
     right: 10px !important;
@@ -243,7 +246,7 @@ nav a:hover {
     padding: 0.5rem 0.8rem;
     font-size: 0.9rem;
   }
-  
+
   header h1 {
     font-size: 1.3rem;
   }
@@ -361,17 +364,19 @@ main {
   flex: 1;
   min-width: 320px;
   position: relative;
-
 }
 
-#camera, #canvas, #preview {
+#camera,
+#canvas,
+#preview {
   max-width: 100%;
   border-radius: 10px;
   margin-bottom: 1rem;
   border: 2px solid #4a4a4a;
 }
 
-#capture, #close-camera {
+#capture,
+#close-camera {
   margin-right: 0.5rem;
 }
 
@@ -430,16 +435,17 @@ main {
 
 .toggle-password {
   position: absolute;
+  bottom: 10%;
   right: 1.2rem;
-  top: 50%;
   transform: translateY(-50%);
-  color: #a0a0a0; /* Abu-abu untuk ikon */
+  font-size: 1.2rem;
+  color: #a0a0a0;
   cursor: pointer;
   transition: color 0.3s ease;
 }
 
 .toggle-password:hover {
-  color: #ffffff; /* Putih saat hover */
+  color: #ffffff;
 }
 
 button {
@@ -544,51 +550,52 @@ button:active {
     position: fixed !important;
     z-index: 1000 !important;
   }
-  
+
   .leaflet-control-zoom {
     bottom: 80px !important;
     right: 10px !important;
   }
-  
+
   .leaflet-control-layers {
     bottom: 150px !important;
     right: 10px !important;
   }
-  
-  #map, #story-map {
+
+  #map,
+  #story-map {
     height: 300px !important;
   }
-  
+
   .image-input-container {
     flex-direction: column;
   }
-  
+
   .camera-container,
   .file-upload-container {
     width: 100%;
   }
-  
+
   /* Memperbaiki padding untuk form pada mobile */
   .form-group input,
   .form-group textarea {
     padding: 0.7rem 1rem;
   }
-  
+
   /* Memperbaiki ukuran font untuk mobile */
   body {
     font-size: 14px;
   }
-  
+
   /* Memperbaiki header pada mobile */
   header {
     padding: 1rem;
   }
-  
+
   /* Memperbaiki navigasi pada mobile */
   nav ul {
     gap: 0.5rem;
   }
-  
+
   nav a {
     padding: 0.5rem 0.8rem;
     font-size: 0.9rem;
@@ -600,31 +607,33 @@ button:active {
   header h1 {
     font-size: 1.3rem;
   }
-  
+
   .auth-container {
     padding: 1.5rem;
   }
-  
+
   .auth-container h2 {
     font-size: 1.3rem;
   }
-  
+
   .form-group label {
     font-size: 0.9rem;
   }
-  
+
   .form-group input,
   .form-group textarea {
     font-size: 0.9rem;
     padding: 0.6rem 0.8rem;
   }
-  
-  button, .file-label {
+
+  button,
+  .file-label {
     padding: 0.6rem 1rem;
     font-size: 0.9rem;
   }
-  
-  #map, #story-map {
+
+  #map,
+  #story-map {
     height: 250px !important;
   }
 }

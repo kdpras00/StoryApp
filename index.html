@@ -1,137 +1,212 @@
 <!DOCTYPE html>
 <html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Aplikasi Berbagi Cerita Dicoding</title>
+    <link rel="icon" href="favicon.ico" type="image/x-icon" />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"
+    />
+    <!-- Hapus baris berikut: -->
+    <!-- <link rel="stylesheet" href="/style.css"> -->
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  </head>
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aplikasi Berbagi Cerita Dicoding</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
-  <!-- Hapus baris berikut: -->
-  <!-- <link rel="stylesheet" href="/style.css"> -->
-  <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-</head>
+  <body>
+    <a href="#main-content" class="skip-to-content">Lewati ke konten</a>
 
-<body>
-  <a href="#main-content" class="skip-to-content">Lewati ke konten</a>
+    <header>
+      <h1>Aplikasi Berbagi Cerita Dicoding</h1>
+      <nav>
+        <ul id="nav-list">
+          <li><a href="#home" class="home-nav">Beranda</a></li>
+          <li><a href="#add-story" class="add-story-nav">Tambah Cerita</a></li>
+          <li><a href="#login" class="login-nav">Login</a></li>
+          <li><a href="#register" class="register-nav">Register</a></li>
+          <li><a href="#logout" class="logout-nav hidden">Logout</a></li>
+        </ul>
+      </nav>
+    </header>
 
-  <header>
-    <h1>Aplikasi Berbagi Cerita Dicoding</h1>
-    <nav>
-      <ul id="nav-list">
-        <li><a href="#home" class="home-nav">Beranda</a></li>
-        <li><a href="#add-story" class="add-story-nav">Tambah Cerita</a></li>
-        <li><a href="#login" class="login-nav">Login</a></li>
-        <li><a href="#register" class="register-nav">Register</a></li>
-        <li><a href="#logout" class="logout-nav hidden">Logout</a></li>
-      </ul>
-    </nav>
-  </header>
+    <main id="main-content" tabindex="-1">
+      <section id="home" class="page">
+        <h2>Daftar Cerita</h2>
+        <div id="story-map" style="height: 400px; margin-bottom: 2rem"></div>
+        <div id="story-list"></div>
+      </section>
 
-  <main id="main-content" tabindex="-1">
-    <section id="home" class="page">
-      <h2>Daftar Cerita</h2>
-      <div id="story-map" style="height: 400px; margin-bottom: 2rem;"></div>
-      <div id="story-list"></div>
-    </section>
+      <section id="add-story" class="page hidden">
+        <h2>Tambah Cerita Baru</h2>
+        <form id="story-form">
+          <!-- Story Form -->
+          <div class="form-group">
+            <label for="description"
+              ><i class="fas fa-comment"></i> Deskripsi Cerita</label
+            >
+            <textarea
+              id="description"
+              name="description"
+              required
+              aria-label="Deskripsi cerita"
+            ></textarea>
+          </div>
 
-    <section id="add-story" class="page hidden">
-      <h2>Tambah Cerita Baru</h2>
-      <form id="story-form">
-        <!-- Story Form -->
-        <div class="form-group">
-          <label for="description"><i class="fas fa-comment"></i> Deskripsi Cerita</label>
-          <textarea id="description" name="description" required aria-label="Deskripsi cerita"></textarea>
-        </div>
-
-        <div class="form-group">
-          <label><i class="fas fa-camera"></i> Foto Cerita</label>
-          <div class="image-input-container">
-            <div class="camera-container">
-              <video id="camera" autoplay></video>
-              <canvas id="canvas" style="display: none;"></canvas>
-              <button type="button" id="capture"><i class="fas fa-camera"></i> Ambil Foto</button>
+          <div class="form-group">
+            <label><i class="fas fa-camera"></i> Foto Cerita</label>
+            <div class="image-input-container">
+              <div class="camera-container">
+                <video id="camera" autoplay></video>
+                <canvas id="canvas" style="display: none"></canvas>
+                <button type="button" id="capture">
+                  <i class="fas fa-camera"></i> Ambil Foto
+                </button>
+              </div>
+              <div class="file-upload-container">
+                <img id="preview" class="hidden" alt="Pratinjau foto cerita" />
+                <input
+                  type="file"
+                  id="photo"
+                  name="photo"
+                  accept="image/*"
+                  class="file-input"
+                />
+                <label for="photo" class="file-label"
+                  ><i class="fas fa-upload"></i> Pilih Foto</label
+                >
+              </div>
             </div>
-            <div class="file-upload-container">
-              <img id="preview" class="hidden" alt="Pratinjau foto cerita">
-              <input type="file" id="photo" name="photo" accept="image/*" class="file-input">
-              <label for="photo" class="file-label"><i class="fas fa-upload"></i> Pilih Foto</label>
+          </div>
+
+          <div class="form-group">
+            <label><i class="fas fa-map-marker-alt"></i> Pilih Lokasi</label>
+            <div id="map" style="height: 400px"></div>
+          </div>
+
+          <button type="submit" class="btn-primary">
+            <i class="fas fa-paper-plane"></i> Kirim Cerita
+          </button>
+        </form>
+      </section>
+
+      <section id="login" class="page auth-section hidden">
+        <div class="auth-container">
+          <h2><i class="fas fa-sign-in-alt"></i> Login</h2>
+          <form id="login-form" class="auth-form">
+            <!-- In Login Form -->
+            <div class="form-group">
+              <label for="login-email"
+                ><i class="fas fa-envelope"></i> Email</label
+              >
+              <input
+                type="email"
+                id="login-email"
+                name="email"
+                required
+                aria-label="Email untuk login"
+              />
             </div>
-          </div>
+            <div class="form-group">
+              <label for="login-password"
+                ><i class="fas fa-lock"></i> Password</label
+              >
+              <input
+                type="password"
+                id="login-password"
+                name="password"
+                required
+                aria-label="Kata sandi untuk login"
+              />
+              <i
+                class="fas fa-eye toggle-password"
+                data-target="login-password"
+                aria-hidden="true"
+              ></i>
+            </div>
+            <button type="submit" class="btn-primary">
+              <i class="fas fa-sign-in-alt"></i> Login
+            </button>
+            <div class="auth-switch">
+              Belum punya akun? <a href="#register">Daftar di sini</a>
+            </div>
+          </form>
         </div>
+      </section>
 
-        <div class="form-group">
-          <label><i class="fas fa-map-marker-alt"></i> Pilih Lokasi</label>
-          <div id="map" style="height: 400px;"></div>
+      <section id="register" class="page auth-section hidden">
+        <div class="auth-container">
+          <h2><i class="fas fa-user-plus"></i> Register</h2>
+          <form id="register-form" class="auth-form">
+            <!-- Register Form -->
+            <div class="form-group">
+              <label for="register-name"
+                ><i class="fas fa-user"></i> Nama</label
+              >
+              <input
+                type="text"
+                id="register-name"
+                name="name"
+                required
+                aria-label="Nama pengguna"
+              />
+            </div>
+            <div class="form-group">
+              <label for="register-email"
+                ><i class="fas fa-envelope"></i> Email</label
+              >
+              <input
+                type="email"
+                id="register-email"
+                name="email"
+                required
+                aria-label="Email untuk registrasi"
+              />
+            </div>
+            <div class="form-group">
+              <label for="register-password"
+                ><i class="fas fa-lock"></i> Password</label
+              >
+              <input
+                type="password"
+                id="register-password"
+                name="password"
+                required
+                aria-label="Kata sandi untuk registrasi"
+              />
+              <i
+                class="fas fa-eye toggle-password"
+                data-target="register-password"
+                aria-hidden="true"
+              ></i>
+            </div>
+
+            <button type="submit" class="btn-primary">
+              <i class="fas fa-user-plus"></i> Register
+            </button>
+            <div class="auth-switch">
+              Sudah punya akun? <a href="#login">Login di sini</a>
+            </div>
+          </form>
         </div>
+      </section>
 
-        <button type="submit" class="btn-primary"><i class="fas fa-paper-plane"></i> Kirim Cerita</button>
-      </form>
-    </section>
+      <section id="not-found" class="page">
+        <h2>Page Not Found</h2>
+        <p>Sorry, the page you are looking for is not available.</p>
+        <a href="#home">Back to Home</a>
+      </section>
+    </main>
 
-    <section id="login" class="page auth-section hidden">
-      <div class="auth-container">
-        <h2><i class="fas fa-sign-in-alt"></i> Login</h2>
-        <form id="login-form" class="auth-form">
-          <!-- In Login Form -->
-          <div class="form-group">
-            <label for="login-email"><i class="fas fa-envelope"></i> Email</label>
-            <input type="email" id="login-email" name="email" required aria-label="Email untuk login">
-          </div>
-          <div class="form-group">
-            <label for="login-password"><i class="fas fa-lock"></i> Password</label>
-            <input type="password" id="login-password" name="password" required aria-label="Kata sandi untuk login">
-            <i class="fas fa-eye toggle-password" data-target="login-password" aria-hidden="true"></i>
-          </div>
-          <button type="submit" class="btn-primary"><i class="fas fa-sign-in-alt"></i> Login</button>
-          <div class="auth-switch">
-            Belum punya akun? <a href="#register">Daftar di sini</a>
-          </div>
-        </form>
-      </div>
-    </section>
-
-    <section id="register" class="page auth-section hidden">
-      <div class="auth-container">
-        <h2><i class="fas fa-user-plus"></i> Register</h2>
-        <form id="register-form" class="auth-form">
-          <!-- Register Form -->
-          <div class="form-group">
-            <label for="register-name"><i class="fas fa-user"></i> Nama</label>
-            <input type="text" id="register-name" name="name" required aria-label="Nama pengguna">
-          </div>
-          <div class="form-group">
-            <label for="register-email"><i class="fas fa-envelope"></i> Email</label>
-            <input type="email" id="register-email" name="email" required aria-label="Email untuk registrasi">
-          </div>
-          <div class="form-group">
-            <label for="register-password"><i class="fas fa-lock"></i> Password</label>
-            <input type="password" id="register-password" name="password" required
-              aria-label="Kata sandi untuk registrasi">
-            <i class="fas fa-eye toggle-password" data-target="register-password" aria-hidden="true"></i>
-          </div>
-
-          <button type="submit" class="btn-primary"><i class="fas fa-user-plus"></i> Register</button>
-          <div class="auth-switch">
-            Sudah punya akun? <a href="#login">Login di sini</a>
-          </div>
-        </form>
-      </div>
-    </section>
-
-    <section id="not-found" class="page">
-      <h2>Page Not Found</h2>
-      <p>Sorry, the page you are looking for is not available.</p>
-      <a href="#home">Back to Home</a>
-    </section>
-
-  </main>
-
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
-    integrity="sha512-..." crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <script type="module" src="index.js"></script>
-  <script src="https://storage.googleapis.com/workbox-cdn/releases/6.5.4/workbox-sw.js"></script>
-
-</body>
-
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+      integrity="sha512-..."
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+    <script type="module" src="index.js"></script>
+    <script src="https://storage.googleapis.com/workbox-cdn/releases/6.5.4/workbox-sw.js"></script>
+  </body>
 </html>
