@@ -435,7 +435,7 @@ main {
 
 .toggle-password {
   position: absolute;
-  bottom: 10%;
+  bottom: 5%;
   right: 1.2rem;
   transform: translateY(-50%);
   font-size: 1.2rem;
