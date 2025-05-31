@@ -199,13 +199,23 @@
 
           <div class="form-group">
             <label><i class="fas fa-camera"></i> Foto Cerita</label>
+            <div class="camera-action-buttons">
+              <button type="button" id="open-camera" class="camera-btn">
+                <i class="fas fa-video"></i> Buka Kamera
+              </button>
+            </div>
             <div class="image-input-container">
-              <div class="camera-container">
+              <div class="camera-container hidden" id="camera-container">
                 <video id="camera" autoplay></video>
                 <canvas id="canvas" style="display: none"></canvas>
-                <button type="button" id="capture">
-                  <i class="fas fa-camera"></i> Ambil Foto
-                </button>
+                <div class="camera-controls">
+                  <button type="button" id="capture" class="camera-btn">
+                    <i class="fas fa-camera"></i> Ambil Foto
+                  </button>
+                  <button type="button" id="close-camera" class="camera-btn">
+                    <i class="fas fa-times"></i> Tutup Kamera
+                  </button>
+                </div>
               </div>
               <div class="file-upload-container">
                 <img id="preview" class="hidden" alt="Pratinjau foto cerita" />
@@ -216,9 +226,9 @@
                   accept="image/*"
                   class="file-input"
                 />
-                <label for="photo" class="file-label"
-                  ><i class="fas fa-upload"></i> Pilih Foto</label
-                >
+                <label for="photo" class="file-label">
+                  <i class="fas fa-upload"></i> Pilih Foto
+                </label>
               </div>
             </div>
           </div>

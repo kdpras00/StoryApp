@@ -216,17 +216,28 @@ body {
   position: absolute;
   top: -40px;
   left: 10px;
-  background: linear-gradient(45deg, #4a4a4a, #2d3536); /* Gradasi abu-abu */
+  background: linear-gradient(45deg, #4a4a4a, #2d3536);
   padding: 12px;
   color: #ffffff;
   text-decoration: none;
   border-radius: 8px;
   font-weight: 500;
   z-index: 1001;
+  transition: top 0.3s ease;
+  overflow: hidden;
+  height: 1px;
+  width: 1px;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
 }
 
 .skip-to-content:focus {
   top: 10px;
+  height: auto;
+  width: auto;
+  clip: auto;
+  clip-path: none;
+  outline: 3px solid #1976d2;
 }
 
 /* Header */
@@ -294,6 +305,14 @@ nav a:hover {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
+/* Add active indicator for navbar links */
+nav a.active {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-bottom: 3px solid #1976d2;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
 /* Map styling yang lebih modern */
 #map,
 #story-map {
@@ -353,6 +372,7 @@ main:has(#auth-container:not(.hidden)) {
   height: 100%;
   display: flex;
   flex-direction: column;
+  animation: fadeIn 0.5s ease;
 }
 
 .story-card:hover {
@@ -469,7 +489,7 @@ main:has(#auth-container:not(.hidden)) {
   flex-wrap: wrap;
 }
 
-/* Improve camera container and video size */
+/* Camera controls */
 .camera-container {
   flex: 1;
   min-width: 250px;
@@ -482,38 +502,124 @@ main:has(#auth-container:not(.hidden)) {
   display: flex;
   flex-direction: column;
   align-items: center;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.camera-container.hidden {
+  display: none;
 }
 
 #camera,
 #preview {
   width: 100%;
-  height: 300px; /* Increased from 200px */
+  height: 300px;
   object-fit: cover;
   border-radius: 8px;
   margin-bottom: 1rem;
   background-color: #1c1c1c;
+  will-change: transform;
+  transform: translateZ(0);
 }
 
-#capture,
-#close-camera {
+.camera-controls {
+  display: flex;
+  gap: 1rem;
+  width: 100%;
+  justify-content: center;
   margin-top: 1rem;
 }
 
+/* Camera controls styling */
+.camera-action-buttons {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
+  gap: 1rem;
+}
+
+.camera-btn {
+  background: linear-gradient(135deg, #3b82f6, #1565c0);
+  color: white;
+  padding: 0.8rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.camera-btn:hover {
+  background: linear-gradient(135deg, #2563eb, #0d47a1);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2);
+}
+
+.camera-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.camera-btn i {
+  font-size: 1.1rem;
+}
+
 #close-camera {
-  background-color: #6c757d;
+  background: linear-gradient(135deg, #6c757d, #495057);
 }
 
 #close-camera:hover {
-  background-color: #5a6268;
+  background: linear-gradient(135deg, #5a6268, #343a40);
 }
 
-.form-group video,
-.form-group canvas {
-  width: 100%;
-  max-width: 100%;
+#capture {
+  background: linear-gradient(135deg, #1976d2, #0d47a1);
+}
+
+#capture:hover {
+  background: linear-gradient(135deg, #1565c0, #083378);
+}
+
+/* Camera loading indicator */
+.camera-loading {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(28, 37, 38, 0.8);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 5;
   border-radius: 8px;
-  background-color: #1c1c1c;
-  margin-bottom: 1rem;
+}
+
+.camera-loading .loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(59, 130, 246, 0.3);
+  border-radius: 50%;
+  border-top-color: #3b82f6;
+  animation: spin 1s linear infinite;
+  margin-bottom: 10px;
+}
+
+.camera-loading p {
+  color: #ffffff;
+  font-size: 14px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .file-input {
@@ -1235,6 +1341,7 @@ button.loading::after {
   display: flex;
   margin-bottom: 1rem;
   max-width: 600px;
+  position: relative;
 }
 
 .search-container input {
@@ -1268,6 +1375,20 @@ button.loading::after {
 .search-container button:hover {
   background-color: #1565c0;
   transform: none;
+}
+
+.search-container.searching::after {
+  content: "";
+  position: absolute;
+  right: 60px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 15px;
+  height: 15px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
 }
 
 /* Filter tabs styling */
@@ -1347,4 +1468,92 @@ button.loading::after {
 
 .auth-form input.success {
   border-color: #28a745;
+}
+
+/* Story cards animation */
+@keyframes searchPulse {
+  0% {
+    border-color: #4a4a4a;
+  }
+  50% {
+    border-color: #1976d2;
+  }
+  100% {
+    border-color: #4a4a4a;
+  }
+}
+
+.search-active {
+  animation: searchPulse 1.5s infinite;
+}
+
+/* Story list fade transition */
+.fade-transition {
+  opacity: 0.7;
+  transition: opacity 0.3s ease;
+}
+
+.fade-transition .story-card {
+  animation: cardFadeIn 0.5s ease forwards;
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+@keyframes cardFadeIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Story search input */
+.search-container input {
+  transition: all 0.3s ease, border-color 1.5s ease;
+}
+
+.search-container input.search-active {
+  border-color: #1976d2;
+  box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.2);
+}
+
+/* Add pulse animation to search button when active */
+.search-container.searching button {
+  animation: searchButtonPulse 1.5s infinite;
+}
+
+@keyframes searchButtonPulse {
+  0% {
+    background-color: #1976d2;
+  }
+  50% {
+    background-color: #1565c0;
+  }
+  100% {
+    background-color: #1976d2;
+  }
+}
+
+/* Empty state animation */
+.empty-state {
+  animation: fadeIn 0.5s ease;
+}
+
+.empty-state i {
+  animation: bounce 2s ease infinite;
+}
+
+@keyframes bounce {
+  0%,
+  20%,
+  50%,
+  80%,
+  100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-10px);
+  }
+  60% {
+    transform: translateY(-5px);
+  }
 }

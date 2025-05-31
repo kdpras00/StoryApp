@@ -267,6 +267,33 @@ class Presenter {
   }
 
   handleLogout() {
+    // Show confirmation dialog before logout
+    if (typeof Swal !== "undefined") {
+      Swal.fire({
+        title: "Konfirmasi Logout",
+        text: "Apakah Anda yakin ingin keluar?",
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonText: "Ya, Logout",
+        cancelButtonText: "Batal",
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#3085d6",
+        background: "#2d3536",
+        color: "#ffffff",
+      }).then((result) => {
+        if (result.isConfirmed) {
+          this._performLogout();
+        }
+      });
+    } else {
+      // Fallback if SweetAlert is not available
+      if (confirm("Apakah Anda yakin ingin keluar?")) {
+        this._performLogout();
+      }
+    }
+  }
+
+  _performLogout() {
     this.model.logout();
     this.view.updateNav(false);
     this.view.stopCamera();
@@ -360,15 +387,8 @@ class Presenter {
 
   async setupAddStoryPage() {
     this.view.setupMap();
-    try {
-      await this.view.setupCamera();
-    } catch (error) {
-      console.error("Camera setup error:", error);
-      this.view.showMessage(
-        "Kamera tidak tersedia. Gunakan upload foto.",
-        true
-      );
-    }
+    // Tidak perlu setup kamera secara otomatis
+    // Kamera akan dibuka saat user menekan tombol open camera
   }
 
   async loadStories() {
@@ -532,6 +552,19 @@ class Presenter {
           // Don't update the button state since the operation failed
         }
       }
+
+      // Realtime update regardless of current filter/page
+      // This ensures all parts of the UI stay in sync
+      if (result) {
+        // If we're currently viewing favorites, reload them
+        if (this.view.currentFilter === "favorites") {
+          await this.loadFavoriteStories();
+        } else {
+          // Otherwise just apply the current filter to refresh the UI
+          this.view._applyFiltersAndSearch();
+        }
+      }
+
       return result;
     } catch (error) {
       console.error("Favorite action error:", error);

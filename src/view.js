@@ -26,18 +26,25 @@ class View {
     this.loginSection = document.getElementById("login");
     this.registerSection = document.getElementById("register");
 
+    // Camera control elements
+    this.openCameraBtn = document.getElementById("open-camera");
+    this.closeCameraBtn = document.getElementById("close-camera");
+    this.cameraContainer = document.getElementById("camera-container");
+
     this.map = null;
     this.storyMap = null;
     this.currentMarker = null;
     this.storyMarkers = [];
     this.stream = null;
     this.capturedImageData = null;
+    this.isCameraActive = false;
 
     // Story filtering state
     this.allStories = []; // Store all stories for filtering
     this.favoriteStories = []; // Store favorite stories
     this.currentFilter = "all"; // Default filter
     this.searchQuery = ""; // Current search query
+    this.searchDebounceTimer = null; // For debouncing search input
 
     this.onRegisterSubmit = null;
     this.onLoginSubmit = null;
@@ -209,6 +216,19 @@ class View {
         this.onCaptureClick();
       }
     });
+
+    // Setup camera control buttons
+    if (this.openCameraBtn) {
+      this.openCameraBtn.addEventListener("click", async () => {
+        await this.openCamera();
+      });
+    }
+
+    if (this.closeCameraBtn) {
+      this.closeCameraBtn.addEventListener("click", () => {
+        this.closeCamera();
+      });
+    }
   }
 
   _setupNavigationEventListeners() {
@@ -502,6 +522,14 @@ class View {
   _applyFiltersAndSearch() {
     if (!this.allStories.length) return;
 
+    // Tampilkan indikator search aktif
+    if (this.storySearch) {
+      this.storySearch.classList.add("search-active");
+      if (this.searchQuery) {
+        this.storySearch.parentElement.classList.add("searching");
+      }
+    }
+
     let filteredStories = [...this.allStories];
 
     // Apply search if there's a query
@@ -537,6 +565,14 @@ class View {
 
     // Display the filtered stories
     this._displayFilteredStories(filteredStories);
+
+    // Hapus indikator search aktif setelah selesai
+    setTimeout(() => {
+      if (this.storySearch) {
+        this.storySearch.classList.remove("search-active");
+        this.storySearch.parentElement.classList.remove("searching");
+      }
+    }, 300);
   }
 
   _displayFilteredStories(stories) {
@@ -554,26 +590,185 @@ class View {
 
       this.storyList.innerHTML = `
         <div class="empty-state">
-          <i class="fas fa-search fa-3x"></i>
-          <h3>${message}</h3>
-          <p>Coba dengan pencarian lain atau pilih filter yang berbeda.</p>
+        <i class="fas fa-search fa-3x"></i>
+        <h3>${message}</h3>
+        <p>Coba dengan pencarian lain atau pilih filter yang berbeda.</p>
         </div>
       `;
       return;
     }
 
-    // Use the existing displayStories method, but pass filtered stories
-    this.displayStories(stories, this.favoriteStories);
+    // Tambahkan animasi fade untuk container
+    this.storyList.classList.add("fade-transition");
+
+    // Gunakan timeout untuk menampilkan staggered effect
+    setTimeout(() => {
+      // Tampilkan stories dengan staggered delay
+      stories.forEach((story, index) => {
+        const card = document.createElement("div");
+        card.className = "story-card";
+        card.setAttribute("role", "listitem");
+
+        // Tambahkan style untuk delayed fade in
+        card.style.animationDelay = `${index * 50}ms`;
+
+        const isFavorited = this.favoriteStories.some(
+          (fav) => fav.id === story.id
+        );
+
+        // Format location display
+        let locationDisplay = "Lokasi tidak tersedia";
+        if (story.lat && story.lon) {
+          // Format coordinates to 4 decimal places for readability
+          const lat = parseFloat(story.lat).toFixed(4);
+          const lon = parseFloat(story.lon).toFixed(4);
+          locationDisplay = `${lat}, ${lon}`;
+        }
+
+        card.innerHTML = `
+          <div class="img-container">
+            <img src="${story.photoUrl}" alt="Foto cerita ${
+          story.name
+        }" loading="lazy">
+          </div>
+          <h3>${story.name}</h3>
+          <p>${story.description}</p>
+          <div class="location-display">
+            <i class="fas fa-map-marker-alt"></i> ${locationDisplay}
+          </div>
+          <p>Dibuat: ${new Date(story.createdAt).toLocaleDateString(
+            "id-ID"
+          )}</p>
+          <button class="favorite-btn ${isFavorited ? "favorited" : ""}"
+                   data-story-id="${story.id}"
+                   data-processing="false"
+                   data-favorited="${isFavorited}"
+                   aria-label="${
+                     isFavorited ? "Hapus dari favorit" : "Tambah ke favorit"
+                   }">
+            <i class="fas fa-heart"></i>
+            <span class="favorite-text">${
+              isFavorited ? "Hapus dari Favorit" : "Tambah ke Favorit"
+            }</span>
+          </button>
+        `;
+
+        // Add to DOM
+        this.storyList.appendChild(card);
+
+        // Setup favorite button
+        const favoriteBtn = card.querySelector(".favorite-btn");
+        favoriteBtn.addEventListener("click", () => {
+          // Prevent multiple clicks while processing
+          if (favoriteBtn.getAttribute("data-processing") === "true") {
+            return;
+          }
+
+          if (this.onFavoriteClick) {
+            // Get current favorited state
+            const currentFavorited =
+              favoriteBtn.getAttribute("data-favorited") === "true";
+
+            // Mark as processing and show loading state
+            favoriteBtn.setAttribute("data-processing", "true");
+            this._setButtonLoading(favoriteBtn, true);
+
+            // Toggle favorite status - if currently favorited, remove it, otherwise add it
+            this.onFavoriteClick(story, !currentFavorited).finally(() => {
+              // Reset processing state
+              favoriteBtn.setAttribute("data-processing", "false");
+              this._setButtonLoading(favoriteBtn, false);
+            });
+          }
+        });
+
+        // Add marker to map if coordinates exist
+        if (story.lat && story.lon) {
+          this.addStoryMarker(story);
+        }
+
+        // Handle image error if needed
+        const img = card.querySelector("img");
+        if (img.complete && img.naturalHeight === 0) {
+          this._handleImageError(img);
+        }
+      });
+
+      // Hapus class transition setelah animasi selesai
+      setTimeout(() => {
+        this.storyList.classList.remove("fade-transition");
+      }, stories.length * 50 + 500);
+    }, 50);
   }
 
-  async setupCamera() {
+  async openCamera() {
+    if (this.isCameraActive) return;
+
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      // Tampilkan container kamera
+      if (this.cameraContainer) {
+        this.cameraContainer.classList.remove("hidden");
+      }
+
+      // Tampilkan loading indicator
+      const loadingIndicator = document.createElement("div");
+      loadingIndicator.className = "camera-loading";
+      loadingIndicator.innerHTML =
+        '<div class="loading-spinner"></div><p>Memulai kamera...</p>';
+      this.cameraContainer.appendChild(loadingIndicator);
+
+      // Minta akses kamera
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          width: { ideal: 1280, max: 1920 },
+          height: { ideal: 720, max: 1080 },
+          facingMode: "environment", // Gunakan kamera belakang secara default
+        },
+      });
+
+      // Hilangkan loading indicator setelah kamera siap
+      if (loadingIndicator.parentNode) {
+        loadingIndicator.parentNode.removeChild(loadingIndicator);
+      }
+
+      // Set stream ke video element
       this.camera.srcObject = stream;
       this.stream = stream;
-      return stream;
+      this.isCameraActive = true;
+
+      // Play video
+      await this.camera.play();
+
+      // Sembunyikan tombol open camera
+      if (this.openCameraBtn) {
+        this.openCameraBtn.classList.add("hidden");
+      }
     } catch (error) {
-      throw new Error("Tidak dapat mengakses kamera: " + error.message);
+      // Hapus loading indicator jika terjadi error
+      const loadingIndicator =
+        this.cameraContainer.querySelector(".camera-loading");
+      if (loadingIndicator) {
+        loadingIndicator.parentNode.removeChild(loadingIndicator);
+      }
+
+      this.showMessage("Tidak dapat mengakses kamera: " + error.message, true);
+      this.closeCamera();
+    }
+  }
+
+  closeCamera() {
+    // Stop kamera
+    this.stopCamera();
+    this.isCameraActive = false;
+
+    // Sembunyikan container kamera
+    if (this.cameraContainer) {
+      this.cameraContainer.classList.add("hidden");
+    }
+
+    // Tampilkan tombol open camera
+    if (this.openCameraBtn) {
+      this.openCameraBtn.classList.remove("hidden");
     }
   }
 
@@ -585,18 +780,38 @@ class View {
     }
   }
 
+  async setupCamera() {
+    // Tidak perlu implementasi lagi di sini karena kita hanya membuka kamera
+    // saat user menekan tombol open camera
+    return true;
+  }
+
   captureImage() {
-    if (!this.stream) {
+    if (!this.stream || !this.isCameraActive) {
       return null;
     }
 
-    const context = this.canvas.getContext("2d");
-    this.canvas.width = this.camera.videoWidth;
-    this.canvas.height = this.camera.videoHeight;
-    context.drawImage(this.camera, 0, 0);
+    try {
+      const context = this.canvas.getContext("2d");
 
-    this.capturedImageData = this.canvas.toDataURL("image/jpeg");
-    return this.capturedImageData;
+      // Make sure canvas has the same size as video
+      const width = this.camera.videoWidth;
+      const height = this.camera.videoHeight;
+
+      // Set canvas size to match video
+      this.canvas.width = width;
+      this.canvas.height = height;
+
+      // Draw video to canvas
+      context.drawImage(this.camera, 0, 0, width, height);
+
+      // Compress image for better performance
+      this.capturedImageData = this.canvas.toDataURL("image/jpeg", 0.85); // 85% quality
+      return this.capturedImageData;
+    } catch (error) {
+      console.error("Error capturing image:", error);
+      return null;
+    }
   }
 
   showImagePreview(imageData) {
@@ -875,6 +1090,9 @@ class View {
     this.photoPreview.src = "";
     this.photoInput.value = "";
     this.capturedImageData = null;
+
+    // Make sure camera is closed when resetting form
+    this.closeCamera();
   }
 
   getPhotoFromInput() {
@@ -890,6 +1108,9 @@ class View {
   }
 
   handlePageViewTransition(pageId, callback) {
+    // Update active navbar link
+    this._updateActiveNavLink(pageId);
+
     if (document.startViewTransition) {
       document.startViewTransition(async () => {
         // Tambahkan animasi custom untuk transisi halaman
@@ -916,6 +1137,19 @@ class View {
       if (callback) {
         callback();
       }
+    }
+  }
+
+  _updateActiveNavLink(pageId) {
+    // Remove active class from all links
+    this.navLinks.forEach((link) => {
+      link.classList.remove("active");
+    });
+
+    // Add active class to current page link
+    const activeLink = document.getElementById(`${pageId}-link`);
+    if (activeLink) {
+      activeLink.classList.add("active");
     }
   }
 
@@ -1017,6 +1251,8 @@ class View {
       }
       // Clear text when loading
       button.innerHTML = "";
+      // Add aria-busy for accessibility
+      button.setAttribute("aria-busy", "true");
     } else {
       button.disabled = false;
       button.classList.remove("loading");
@@ -1026,6 +1262,8 @@ class View {
         // Clean up
         delete button.dataset.originalText;
       }
+      // Reset aria-busy
+      button.removeAttribute("aria-busy");
     }
   }
 
@@ -1086,6 +1324,19 @@ class View {
   _setupStoryFilters() {
     // Setup search functionality
     if (this.storySearch && this.searchButton) {
+      // Tambahkan event listener untuk realtime search
+      this.storySearch.addEventListener("input", (e) => {
+        // Bersihkan timer sebelumnya untuk debouncing
+        clearTimeout(this.searchDebounceTimer);
+
+        // Set timer baru untuk debouncing (delay 300ms)
+        this.searchDebounceTimer = setTimeout(() => {
+          this.searchQuery = e.target.value.trim().toLowerCase();
+          this._applyFiltersAndSearch();
+        }, 300);
+      });
+
+      // Tetap pertahankan search button untuk aksesibilitas
       this.searchButton.addEventListener("click", () => {
         this.searchQuery = this.storySearch.value.trim().toLowerCase();
         this._applyFiltersAndSearch();
