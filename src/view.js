@@ -1147,7 +1147,7 @@ class View {
     });
 
     // Add active class to current page link
-    const activeLink = document.getElementById(`${pageId}-link`);
+    const activeLink = document.querySelector(`nav a[href="#${pageId}"]`);
     if (activeLink) {
       activeLink.classList.add("active");
     }

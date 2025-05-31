@@ -214,8 +214,8 @@ body {
 
 .skip-to-content {
   position: absolute;
-  top: -40px;
-  left: 10px;
+  top: -9999px;
+  left: -9999px;
   background: linear-gradient(45deg, #4a4a4a, #2d3536);
   padding: 12px;
   color: #ffffff;
@@ -223,21 +223,24 @@ body {
   border-radius: 8px;
   font-weight: 500;
   z-index: 1001;
-  transition: top 0.3s ease;
+  transition: top 0.3s ease, left 0.3s ease;
   overflow: hidden;
   height: 1px;
   width: 1px;
   clip: rect(0 0 0 0);
   clip-path: inset(50%);
+  opacity: 0;
 }
 
 .skip-to-content:focus {
   top: 10px;
+  left: 10px;
   height: auto;
   width: auto;
   clip: auto;
   clip-path: none;
   outline: 3px solid #1976d2;
+  opacity: 1;
 }
 
 /* Header */
