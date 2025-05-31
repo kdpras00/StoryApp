@@ -13,11 +13,23 @@
       href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"
     />
     <!-- Leaflet plugins -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet-fullscreen@1.0.2/dist/leaflet.fullscreen.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.locatecontrol@0.79.0/dist/L.Control.Locate.min.css" />
-    
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet-fullscreen@1.0.2/dist/leaflet.fullscreen.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet.locatecontrol@0.79.0/dist/L.Control.Locate.min.css"
+    />
+
     <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
     <script src="https://unpkg.com/leaflet-fullscreen@1.0.2/dist/Leaflet.fullscreen.min.js"></script>
@@ -34,8 +46,14 @@
       <nav>
         <ul id="nav-list">
           <li><a href="#home" id="home-link" class="home-nav">Beranda</a></li>
-          <li><a href="#add-story" id="add-story-link" class="add-story-nav">Tambah Cerita</a></li>
-          <li><a href="#logout" id="logout-link" class="logout-nav">Logout</a></li>
+          <li>
+            <a href="#add-story" id="add-story-link" class="add-story-nav"
+              >Tambah Cerita</a
+            >
+          </li>
+          <li>
+            <a href="#logout" id="logout-link" class="logout-nav">Logout</a>
+          </li>
         </ul>
       </nav>
     </header>
@@ -44,14 +62,16 @@
       <!-- Auth container for login/register - shows before login -->
       <div id="auth-container" class="auth-wrapper">
         <h1 class="app-title">StoryApp</h1>
-        
+
         <!-- Remove tabs and show login by default -->
         <section id="login" class="auth-section">
           <div class="auth-container">
             <h2><i class="fas fa-sign-in-alt"></i> Login</h2>
             <form id="login-form" class="auth-form">
               <div class="form-group">
-                <label for="login-email"><i class="fas fa-envelope"></i> Email</label>
+                <label for="login-email"
+                  ><i class="fas fa-envelope"></i> Email</label
+                >
                 <input
                   type="email"
                   id="login-email"
@@ -59,12 +79,14 @@
                   required
                   aria-label="Email untuk login"
                   placeholder="Masukkan email anda"
-                  pattern="[a-zA-Z0-9._%-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}"
+                  pattern="[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}"
                   title="Masukkan format email yang valid"
                 />
               </div>
               <div class="form-group">
-                <label for="login-password"><i class="fas fa-lock"></i> Password</label>
+                <label for="login-password"
+                  ><i class="fas fa-lock"></i> Password</label
+                >
                 <div class="password-input">
                   <input
                     type="password"
@@ -76,7 +98,12 @@
                     minlength="6"
                     title="Password minimal 6 karakter"
                   />
-                  <button type="button" class="toggle-password" data-target="login-password" aria-label="Tampilkan password">
+                  <button
+                    type="button"
+                    class="toggle-password"
+                    data-target="login-password"
+                    aria-label="Tampilkan password"
+                  >
                     <i class="fas fa-eye"></i>
                   </button>
                 </div>
@@ -97,7 +124,9 @@
             <h2><i class="fas fa-user-plus"></i> Register</h2>
             <form id="register-form" class="auth-form">
               <div class="form-group">
-                <label for="register-name"><i class="fas fa-user"></i> Nama</label>
+                <label for="register-name"
+                  ><i class="fas fa-user"></i> Nama</label
+                >
                 <input
                   type="text"
                   id="register-name"
@@ -110,7 +139,9 @@
                 />
               </div>
               <div class="form-group">
-                <label for="register-email"><i class="fas fa-envelope"></i> Email</label>
+                <label for="register-email"
+                  ><i class="fas fa-envelope"></i> Email</label
+                >
                 <input
                   type="email"
                   id="register-email"
@@ -118,12 +149,14 @@
                   required
                   aria-label="Email untuk registrasi"
                   placeholder="Masukkan email anda"
-                  pattern="[a-zA-Z0-9._%-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}"
+                  pattern="[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}"
                   title="Masukkan format email yang valid"
                 />
               </div>
               <div class="form-group">
-                <label for="register-password"><i class="fas fa-lock"></i> Password</label>
+                <label for="register-password"
+                  ><i class="fas fa-lock"></i> Password</label
+                >
                 <div class="password-input">
                   <input
                     type="password"
@@ -135,7 +168,12 @@
                     minlength="6"
                     title="Password minimal 6 karakter"
                   />
-                  <button type="button" class="toggle-password" data-target="register-password" aria-label="Tampilkan password">
+                  <button
+                    type="button"
+                    class="toggle-password"
+                    data-target="register-password"
+                    aria-label="Tampilkan password"
+                  >
                     <i class="fas fa-eye"></i>
                   </button>
                 </div>
@@ -155,17 +193,22 @@
       <!-- Content sections - will show after login -->
       <section id="home" class="page hidden">
         <h2>Daftar Cerita</h2>
-        
+
         <!-- Add story controls section -->
         <div class="story-controls">
           <!-- Search bar -->
           <div class="search-container">
-            <input type="text" id="story-search" placeholder="Cari cerita..." aria-label="Cari cerita">
+            <input
+              type="text"
+              id="story-search"
+              placeholder="Cari cerita..."
+              aria-label="Cari cerita"
+            />
             <button id="search-button" aria-label="Cari">
               <i class="fas fa-search"></i>
             </button>
           </div>
-          
+
           <!-- Story filter tabs -->
           <div class="story-filter-tabs">
             <button class="filter-tab active" data-filter="all">
@@ -182,7 +225,7 @@
             </button>
           </div>
         </div>
-        
+
         <div id="story-map" style="height: 400px; margin-bottom: 2rem"></div>
         <div id="story-list"></div>
       </section>
@@ -191,7 +234,9 @@
         <h2>Tambah Cerita Baru</h2>
         <form id="story-form">
           <div class="form-group">
-            <label for="description"><i class="fas fa-comment"></i> Deskripsi Cerita</label>
+            <label for="description"
+              ><i class="fas fa-comment"></i> Deskripsi Cerita</label
+            >
             <textarea
               id="description"
               name="description"
@@ -239,7 +284,10 @@
           <div class="form-group">
             <label><i class="fas fa-map-marker-alt"></i> Pilih Lokasi</label>
             <div id="map" style="height: 400px"></div>
-            <p class="location-hint"><i class="fas fa-info-circle"></i> Klik pada peta untuk memilih lokasi</p>
+            <p class="location-hint">
+              <i class="fas fa-info-circle"></i> Klik pada peta untuk memilih
+              lokasi
+            </p>
           </div>
 
           <button type="submit" class="btn-primary">
@@ -252,7 +300,9 @@
         <div class="not-found-container">
           <i class="fas fa-exclamation-triangle fa-5x"></i>
           <h2>Halaman Tidak Ditemukan</h2>
-          <p>Maaf, halaman yang Anda cari tidak tersedia atau telah dipindahkan.</p>
+          <p>
+            Maaf, halaman yang Anda cari tidak tersedia atau telah dipindahkan.
+          </p>
           <div class="not-found-actions">
             <a href="#home" class="btn-primary">
               <i class="fas fa-home"></i> Kembali ke Beranda

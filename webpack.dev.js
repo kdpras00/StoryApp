@@ -1,19 +1,24 @@
-const { merge } = require('webpack-merge');
-const common = require('./webpack.common.js');
+const { merge } = require("webpack-merge");
+const common = require("./webpack.common.js");
 
 module.exports = merge(common, {
-  mode: 'development',
-  devtool: 'inline-source-map',
+  mode: "development",
   devServer: {
-    static: './dist',
-    open: true,
+    host: "localhost",
     port: 8080,
+    hot: true,
     client: {
-      overlay: {
-        errors: true,
-        warnings: false,
+      webSocketURL: {
+        hostname: "localhost",
+        pathname: "/ws",
+        port: 8080,
+        protocol: "ws",
       },
+      overlay: true,
+      progress: true,
     },
-    compress: true,
+    watchFiles: ["src/**/*", "public/**/*"],
+    open: true,
+    static: "./dist",
   },
 });

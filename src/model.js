@@ -182,11 +182,17 @@ class Model {
 
   // Sync offline data when back online
   async syncOfflineData() {
+    // Disable this function temporarily to avoid errors
+    console.log("Offline data sync disabled temporarily");
+    return;
+
+    // Original code below
+    /*
     if (!this.db || !navigator.onLine || !this.isLoggedIn()) return;
 
     try {
       // First check if the offlineActions store exists
-      if (!Array.from(this.db.objectStoreNames).includes("offlineActions")) {
+      if (!this.db.objectStoreNames.contains("offlineActions")) {
         console.log("offlineActions store doesn't exist yet, skipping sync");
         return;
       }
@@ -219,15 +225,21 @@ class Model {
 
       try {
         // Clean up synced actions if by-type index exists
-        if (store.indexNames.contains("by-type")) {
+        if (
+          store.indexNames &&
+          store.indexNames.contains &&
+          store.indexNames.contains("by-type")
+        ) {
           const cleanupTx = this.db.transaction("offlineActions", "readwrite");
           const cleanupStore = cleanupTx.objectStore("offlineActions");
           const syncedActions = await cleanupStore
             .index("by-type")
             .getAll(IDBKeyRange.only(true));
 
-          for (const action of syncedActions) {
-            cleanupStore.delete(action.timestamp);
+          if (syncedActions && syncedActions.length) {
+            for (const action of syncedActions) {
+              cleanupStore.delete(action.timestamp);
+            }
           }
         }
       } catch (cleanupError) {
@@ -237,6 +249,7 @@ class Model {
     } catch (error) {
       console.error("Error syncing offline data:", error);
     }
+    */
   }
 
   // Login method
