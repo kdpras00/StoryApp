@@ -3,11 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Aplikasi Berbagi Cerita Dicoding</title>
+    <title>StoryApp</title>
     <link rel="icon" href="favicon.ico" type="image/x-icon" />
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#1976d2" />
-    <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+    <link rel="apple-touch-icon" href="/icons/icon-144x144.png" />
     <link
       rel="stylesheet"
       href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"
@@ -30,7 +30,7 @@
 
     <!-- Header with navigation - will be hidden before login -->
     <header id="app-header" class="hidden">
-      <h1>Aplikasi Berbagi Cerita Dicoding</h1>
+      <h1>StoryApp</h1>
       <nav>
         <ul id="nav-list">
           <li><a href="#home" id="home-link" class="home-nav">Beranda</a></li>
@@ -43,7 +43,7 @@
     <main id="main-content" tabindex="-1">
       <!-- Auth container for login/register - shows before login -->
       <div id="auth-container" class="auth-wrapper">
-        <h1 class="app-title">Aplikasi Berbagi Cerita Dicoding</h1>
+        <h1 class="app-title">StoryApp</h1>
         
         <!-- Remove tabs and show login by default -->
         <section id="login" class="auth-section">
@@ -59,7 +59,7 @@
                   required
                   aria-label="Email untuk login"
                   placeholder="Masukkan email anda"
-                  pattern="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"
+                  pattern="[a-zA-Z0-9._%-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}"
                   title="Masukkan format email yang valid"
                 />
               </div>
@@ -118,7 +118,7 @@
                   required
                   aria-label="Email untuk registrasi"
                   placeholder="Masukkan email anda"
-                  pattern="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"
+                  pattern="[a-zA-Z0-9._%-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}"
                   title="Masukkan format email yang valid"
                 />
               </div>

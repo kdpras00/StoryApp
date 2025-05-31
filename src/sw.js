@@ -3,226 +3,196 @@ importScripts(
   "https://storage.googleapis.com/workbox-cdn/releases/6.5.4/workbox-sw.js"
 );
 
-const { registerRoute } = workbox.routing;
-const { CacheFirst, NetworkFirst, StaleWhileRevalidate } = workbox.strategies;
-const { CacheableResponsePlugin } = workbox.cacheableResponse;
-const { ExpirationPlugin } = workbox.expiration;
+// Check if Workbox loaded successfully
+if (workbox) {
+  console.log(`Workbox berhasil dimuat`);
+  workbox.precaching.precacheAndRoute([
+    { url: "/", revision: "1" },
+    { url: "/index.html", revision: "1" },
+    { url: "/offline.html", revision: "1" },
+    { url: "/manifest.json", revision: "1" },
+    // Remove source files that don't exist in production build
+    // { url: "/src/style.css", revision: "1" },
+    // { url: "/src/app.js", revision: "1" },
+    // { url: "/src/model.js", revision: "1" },
+    // { url: "/src/view.js", revision: "1" },
+    // { url: "/src/presenter.js", revision: "1" },
+    // { url: "/src/sw.js", revision: "1" },
+    // Instead, cache the bundled JS files
+    { url: "/main~bef837c7.bundle.js", revision: "1" },
+    { url: "/main~e96e9bea.bundle.js", revision: "1" },
+    { url: "/main~ef7d455c.bundle.js", revision: "1" },
+    { url: "/main~34732860.bundle.js", revision: "1" },
+    { url: "/sw.js", revision: "1" },
+    // Only include icons that actually exist
+    { url: "/icons/icon-144x144.png", revision: "1" },
+    // Removed non-existent icons
+    // { url: "/icons/icon-72x72.png", revision: "1" },
+    // { url: "/icons/icon-96x96.png", revision: "1" },
+    // { url: "/icons/icon-128x128.png", revision: "1" },
+    // { url: "/icons/icon-152x152.png", revision: "1" },
+    // { url: "/icons/icon-192x192.png", revision: "1" },
+    // { url: "/icons/icon-384x384.png", revision: "1" },
+    // { url: "/icons/icon-512x512.png", revision: "1" },
+  ]);
 
-// Cache name
-const CACHE_NAME = "story-app-v1";
+  // Cache the Google Fonts stylesheets with a stale-while-revalidate strategy.
+  workbox.routing.registerRoute(
+    /^https:\/\/fonts\.googleapis\.com/,
+    new workbox.strategies.StaleWhileRevalidate({
+      cacheName: "google-fonts-stylesheets",
+    })
+  );
 
-// Precache essential static assets
-workbox.precaching.precacheAndRoute([
-  { url: "/", revision: "1" },
-  { url: "/index.html", revision: "1" },
-  { url: "/offline.html", revision: "1" },
-  { url: "/manifest.json", revision: "1" },
-  { url: "/src/style.css", revision: "1" },
-  { url: "/src/app.js", revision: "1" },
-  { url: "/src/model.js", revision: "1" },
-  { url: "/src/view.js", revision: "1" },
-  { url: "/src/presenter.js", revision: "1" },
-  { url: "/src/utils.js", revision: "1" },
-  // Icons
-  { url: "/icons/icon-72x72.png", revision: "1" },
-  { url: "/icons/icon-96x96.png", revision: "1" },
-  { url: "/icons/icon-128x128.png", revision: "1" },
-  { url: "/icons/icon-144x144.png", revision: "1" },
-  { url: "/icons/icon-152x152.png", revision: "1" },
-  { url: "/icons/icon-192x192.png", revision: "1" },
-  { url: "/icons/icon-384x384.png", revision: "1" },
-  { url: "/icons/icon-512x512.png", revision: "1" },
-]);
+  // Cache the underlying font files with a cache-first strategy for 1 year.
+  workbox.routing.registerRoute(
+    /^https:\/\/fonts\.gstatic\.com/,
+    new workbox.strategies.CacheFirst({
+      cacheName: "google-fonts-webfonts",
+      plugins: [
+        new workbox.cacheableResponse.CacheableResponsePlugin({
+          statuses: [0, 200],
+        }),
+        new workbox.expiration.ExpirationPlugin({
+          maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
+          maxEntries: 30,
+        }),
+      ],
+    })
+  );
 
-// Cache Google Fonts stylesheets with a stale-while-revalidate strategy
-registerRoute(
-  ({ url }) => url.origin === "https://fonts.googleapis.com",
-  new StaleWhileRevalidate({
-    cacheName: "google-fonts-stylesheets",
-  })
-);
+  // Cache CSS and JavaScript Files
+  workbox.routing.registerRoute(
+    /\.(?:js|css)$/,
+    new workbox.strategies.StaleWhileRevalidate({
+      cacheName: "static-resources",
+    })
+  );
 
-// Cache Google Fonts webfont files with a cache-first strategy for 1 year
-registerRoute(
-  ({ url }) => url.origin === "https://fonts.gstatic.com",
-  new CacheFirst({
-    cacheName: "google-fonts-webfonts",
-    plugins: [
-      new CacheableResponsePlugin({
-        statuses: [0, 200],
-      }),
-      new ExpirationPlugin({
-        maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
-        maxEntries: 30,
-      }),
-    ],
-  })
-);
+  // Cache Images
+  workbox.routing.registerRoute(
+    /\.(?:png|jpg|jpeg|svg|gif|ico)$/,
+    new workbox.strategies.CacheFirst({
+      cacheName: "images",
+      plugins: [
+        new workbox.expiration.ExpirationPlugin({
+          maxEntries: 60,
+          maxAgeSeconds: 30 * 24 * 60 * 60, // 30 Days
+        }),
+      ],
+    })
+  );
 
-// Cache images with a cache-first strategy
-registerRoute(
-  ({ request }) => request.destination === "image",
-  new CacheFirst({
-    cacheName: "images",
-    plugins: [
-      new CacheableResponsePlugin({
-        statuses: [0, 200],
-      }),
-      new ExpirationPlugin({
-        maxEntries: 60,
-        maxAgeSeconds: 30 * 24 * 60 * 60, // 30 days
-      }),
-    ],
-  })
-);
+  // API Caching Strategy
+  workbox.routing.registerRoute(
+    new RegExp("https://story-api.dicoding.dev/v1/.*"),
+    new workbox.strategies.NetworkFirst({
+      cacheName: "api-cache",
+      plugins: [
+        new workbox.cacheableResponse.CacheableResponsePlugin({
+          statuses: [0, 200],
+        }),
+        new workbox.expiration.ExpirationPlugin({
+          maxEntries: 100,
+          maxAgeSeconds: 30 * 24 * 60 * 60, // 30 Days
+        }),
+      ],
+    })
+  );
 
-// Cache the Leaflet library files (map tiles)
-registerRoute(
-  ({ url }) =>
-    url.origin === "https://tile.openstreetmap.org" ||
-    url.origin === "https://a.tile.openstreetmap.org" ||
-    url.origin === "https://b.tile.openstreetmap.org" ||
-    url.origin === "https://c.tile.openstreetmap.org" ||
-    url.origin === "https://server.arcgisonline.com" ||
-    url.href.includes("basemaps.cartocdn.com") ||
-    url.href.includes("tile.opentopomap.org"),
-  new CacheFirst({
-    cacheName: "map-tiles",
-    plugins: [
-      new CacheableResponsePlugin({
-        statuses: [0, 200],
-      }),
-      new ExpirationPlugin({
-        maxEntries: 200,
-        maxAgeSeconds: 14 * 24 * 60 * 60, // 14 days
-      }),
-    ],
-  })
-);
+  // Offline Fallback
+  workbox.routing.setDefaultHandler(
+    new workbox.strategies.NetworkFirst({
+      cacheName: "default-cache",
+      plugins: [
+        new workbox.cacheableResponse.CacheableResponsePlugin({
+          statuses: [0, 200],
+        }),
+      ],
+    })
+  );
 
-// Cache JavaScript and CSS files with a stale-while-revalidate strategy
-registerRoute(
-  ({ request }) =>
-    request.destination === "script" || request.destination === "style",
-  new StaleWhileRevalidate({
-    cacheName: "static-resources",
-    plugins: [
-      new CacheableResponsePlugin({
-        statuses: [0, 200],
-      }),
-    ],
-  })
-);
+  // Offline fallback for pages
+  workbox.routing.setCatchHandler(async ({ event }) => {
+    if (event.request.destination === "document") {
+      return workbox.precaching.matchPrecache("/offline.html");
+    }
 
-// Cache API responses with network-first strategy
-registerRoute(
-  ({ url }) => url.pathname.startsWith("/api/"),
-  new NetworkFirst({
-    cacheName: "api-responses",
-    plugins: [
-      new CacheableResponsePlugin({
-        statuses: [0, 200],
-      }),
-      new ExpirationPlugin({
-        maxEntries: 50,
-        maxAgeSeconds: 10 * 60, // 10 minutes
-      }),
-    ],
-  })
-);
+    if (event.request.destination === "image") {
+      return workbox.precaching.matchPrecache("/icons/icon-144x144.png");
+    }
 
-// Default handler for navigations - network first with offline fallback
-registerRoute(
-  ({ request }) => request.mode === "navigate",
-  new NetworkFirst({
-    cacheName: "navigations",
-    plugins: [
-      new CacheableResponsePlugin({
-        statuses: [0, 200],
-      }),
-    ],
-    networkTimeoutSeconds: 3,
-  })
-);
+    return Response.error();
+  });
+} else {
+  console.log(`Workbox gagal dimuat`);
+}
 
-// Fallback to offline page when network fails for navigation requests
-workbox.navigationPreload.enable();
-
-const networkWithOfflineFallback = async (params) => {
-  try {
-    // Try to fetch from network
-    return await workbox.strategies.networkFirst().handle(params);
-  } catch (error) {
-    // Fallback to cached offline page if network fails
-    return caches.match("/offline.html");
-  }
-};
-
-// Register the fallback strategy for navigation requests
-registerRoute(
-  ({ request }) => request.mode === "navigate",
-  networkWithOfflineFallback
-);
-
-// Push notification handler
+// Handle Push Notifications
 self.addEventListener("push", (event) => {
-  let notificationData = {};
-  try {
-    notificationData = event.data.json();
-  } catch (e) {
-    notificationData = {
-      title: "Notifikasi Baru",
-      body: event.data ? event.data.text() : "Ada pembaruan baru!",
-    };
-  }
-
-  const options = {
-    body: notificationData.body || "Ada pembaruan baru!",
-    icon: "/icons/icon-192x192.png",
-    badge: "/icons/badge-72x72.png",
-    vibrate: [100, 50, 100],
-    data: {
-      url: notificationData.url || "/",
-    },
-    actions: [
-      {
-        action: "open",
-        title: "Lihat Detail",
+  let notificationData = {
+    title: "Story App Notification",
+    options: {
+      body: "Ada konten cerita baru!",
+      icon: "/icons/icon-144x144.png",
+      badge: "/icons/error-icon-72x72.png",
+      data: {
+        url: self.location.origin,
       },
-    ],
+    },
   };
+
+  if (event.data) {
+    try {
+      const payload = event.data.json();
+      notificationData = {
+        title: payload.title || notificationData.title,
+        options: {
+          ...notificationData.options,
+          body: payload.message || notificationData.options.body,
+        },
+      };
+    } catch (error) {
+      console.error("Error parsing notification payload:", error);
+    }
+  }
 
   event.waitUntil(
     self.registration.showNotification(
-      notificationData.title || "Notifikasi Baru",
-      options
+      notificationData.title,
+      notificationData.options
     )
   );
 });
 
-// Notification click handler
+// Handle notification click
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
-  if (event.action === "open" || !event.action) {
-    event.waitUntil(
-      clients.matchAll({ type: "window" }).then((clientList) => {
-        const url = event.notification.data.url || "/";
+  const urlToOpen =
+    event.notification.data && event.notification.data.url
+      ? event.notification.data.url
+      : self.location.origin;
 
-        // If a window is already open, focus it
-        for (const client of clientList) {
-          if (client.url === url && "focus" in client) {
+  event.waitUntil(
+    clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((windowClients) => {
+        // Check if there is already a window/tab open with the target URL
+        for (let i = 0; i < windowClients.length; i++) {
+          const client = windowClients[i];
+          // If so, focus on it
+          if (client.url === urlToOpen && "focus" in client) {
             return client.focus();
           }
         }
 
-        // Otherwise, open a new window
+        // If not, open a new window/tab
         if (clients.openWindow) {
-          return clients.openWindow(url);
+          return clients.openWindow(urlToOpen);
         }
       })
-    );
-  }
+  );
 });
 
 // Skip waiting and clients claim to ensure the service worker activates quickly

@@ -41,6 +41,11 @@ class Presenter {
 
     window.addEventListener("hashchange", this.handleRouteChange.bind(this));
     this.handleRouteChange();
+
+    // Tambahkan di presenter.js
+    setInterval(() => {
+      this.checkForNewStories();
+    }, 60000); // Cek setiap 1 menit
   }
 
   handleMapClick(latlng) {
@@ -472,18 +477,49 @@ class Presenter {
 
   async subscribeToPush(registration) {
     try {
+      // Check if already subscribed to avoid redundant subscriptions
+      const existingSubscription =
+        await registration.pushManager.getSubscription();
+      if (existingSubscription) {
+        console.log("Already subscribed to push notifications");
+        if (this.model.isLoggedIn()) {
+          try {
+            await this.model.subscribePush(existingSubscription);
+            console.log("Push notification subscription updated successfully");
+            return true;
+          } catch (err) {
+            console.warn(
+              "Failed to update subscription, but continuing anyway:",
+              err
+            );
+            return true;
+          }
+        }
+        return true;
+      }
+
+      // Create new subscription
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
       });
 
       if (this.model.isLoggedIn()) {
-        await this.model.subscribePush(subscription);
-        console.log("Push notification subscription successful");
+        try {
+          await this.model.subscribePush(subscription);
+          console.log("Push notification subscription successful");
+        } catch (error) {
+          console.warn("Push subscription API error, but continuing:", error);
+        }
+      } else {
+        console.log("User not logged in, skipping server subscription");
       }
+
+      return true;
     } catch (error) {
-      console.error("Push subscription failed:", error);
-      this.view.updateNotificationUI(false);
+      console.error("Push subscription error:", error);
+      // Don't throw error, just log it and continue
+      return false;
     }
   }
 
@@ -553,16 +589,16 @@ class Presenter {
         }
       }
 
-      // Realtime update regardless of current filter/page
-      // This ensures all parts of the UI stay in sync
+      // Realtime update hanya jika filter favorites
       if (result) {
         // If we're currently viewing favorites, reload them
         if (this.view.currentFilter === "favorites") {
           await this.loadFavoriteStories();
-        } else {
-          // Otherwise just apply the current filter to refresh the UI
-          this.view._applyFiltersAndSearch();
         }
+        // Hilangkan refresh UI untuk filter lain
+        // else {
+        //   this.view._applyFiltersAndSearch();
+        // }
       }
 
       return result;
@@ -603,6 +639,31 @@ class Presenter {
   setupRouting() {
     // Initial route handling
     this.handleRouteChange();
+  }
+
+  async checkForNewStories() {
+    const currentStories = await this.model.getStories();
+    const lastKnownStoryId = localStorage.getItem("lastKnownStoryId");
+
+    if (
+      currentStories.length > 0 &&
+      lastKnownStoryId !== currentStories[0].id
+    ) {
+      // Ada cerita baru, tampilkan notifikasi
+      if (Notification.permission === "granted") {
+        const registration = await navigator.serviceWorker.getRegistration();
+        if (registration) {
+          registration.showNotification("Cerita Baru", {
+            body: "Ada cerita baru yang ditambahkan!",
+            icon: "/icons/icon-144x144.png",
+            badge: "/icons/error-icon-72x72.png",
+          });
+        }
+      }
+
+      // Simpan ID cerita terbaru
+      localStorage.setItem("lastKnownStoryId", currentStories[0].id);
+    }
   }
 }
 

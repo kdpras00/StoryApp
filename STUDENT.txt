@@ -1,3 +1,20 @@
 Leaflet API Key: Tidak diperlukan untuk OpenStreetMap
 
-Deployment URL: https://storyapp-dicoding.netlify.app/
+Nama: Nama Lengkap Mahasiswa
+ID Dicoding: dicoding-id-anda
+URL Deployment: https://storyapp-dicoding.netlify.app
+
+Catatan:
+1. Aplikasi ini adalah Progressive Web App (PWA) yang memenuhi kriteria Installable dan Offline Capability
+2. Fitur-fitur utama:
+   - Menggunakan arsitektur single-page application
+   - Menggunakan API untuk sumber data
+   - Menerapkan IndexedDB untuk penyimpanan offline
+   - Memiliki fitur push notification
+   - Dapat dipasang ke homescreen (add to homescreen)
+   - Dapat digunakan dalam kondisi offline
+
+3. Fitur tambahan yang diterapkan:
+   - Workbox untuk mengelola caching dan strategi offline
+   - Web App Manifest dengan shortcuts dan screenshots
+   - Halaman 404 untuk URL yang tidak valid

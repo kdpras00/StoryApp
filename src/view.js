@@ -522,14 +522,6 @@ class View {
   _applyFiltersAndSearch() {
     if (!this.allStories.length) return;
 
-    // Tampilkan indikator search aktif
-    if (this.storySearch) {
-      this.storySearch.classList.add("search-active");
-      if (this.searchQuery) {
-        this.storySearch.parentElement.classList.add("searching");
-      }
-    }
-
     let filteredStories = [...this.allStories];
 
     // Apply search if there's a query
@@ -565,14 +557,6 @@ class View {
 
     // Display the filtered stories
     this._displayFilteredStories(filteredStories);
-
-    // Hapus indikator search aktif setelah selesai
-    setTimeout(() => {
-      if (this.storySearch) {
-        this.storySearch.classList.remove("search-active");
-        this.storySearch.parentElement.classList.remove("searching");
-      }
-    }, 300);
   }
 
   _displayFilteredStories(stories) {
@@ -598,107 +582,91 @@ class View {
       return;
     }
 
-    // Tambahkan animasi fade untuk container
-    this.storyList.classList.add("fade-transition");
+    // Tampilkan stories tanpa staggered effect atau timeout
+    stories.forEach((story) => {
+      const card = document.createElement("div");
+      card.className = "story-card";
+      card.setAttribute("role", "listitem");
 
-    // Gunakan timeout untuk menampilkan staggered effect
-    setTimeout(() => {
-      // Tampilkan stories dengan staggered delay
-      stories.forEach((story, index) => {
-        const card = document.createElement("div");
-        card.className = "story-card";
-        card.setAttribute("role", "listitem");
+      const isFavorited = this.favoriteStories.some(
+        (fav) => fav.id === story.id
+      );
 
-        // Tambahkan style untuk delayed fade in
-        card.style.animationDelay = `${index * 50}ms`;
+      // Format location display
+      let locationDisplay = "Lokasi tidak tersedia";
+      if (story.lat && story.lon) {
+        // Format coordinates to 4 decimal places for readability
+        const lat = parseFloat(story.lat).toFixed(4);
+        const lon = parseFloat(story.lon).toFixed(4);
+        locationDisplay = `${lat}, ${lon}`;
+      }
 
-        const isFavorited = this.favoriteStories.some(
-          (fav) => fav.id === story.id
-        );
+      card.innerHTML = `
+        <div class="img-container">
+          <img src="${story.photoUrl}" alt="Foto cerita ${
+        story.name
+      }" loading="lazy">
+        </div>
+        <h3>${story.name}</h3>
+        <p>${story.description}</p>
+        <div class="location-display">
+          <i class="fas fa-map-marker-alt"></i> ${locationDisplay}
+        </div>
+        <p>Dibuat: ${new Date(story.createdAt).toLocaleDateString("id-ID")}</p>
+        <button class="favorite-btn ${isFavorited ? "favorited" : ""}"
+                 data-story-id="${story.id}"
+                 data-processing="false"
+                 data-favorited="${isFavorited}"
+                 aria-label="${
+                   isFavorited ? "Hapus dari favorit" : "Tambah ke favorit"
+                 }">
+          <i class="fas fa-heart"></i>
+          <span class="favorite-text">${
+            isFavorited ? "Hapus dari Favorit" : "Tambah ke Favorit"
+          }</span>
+        </button>
+      `;
 
-        // Format location display
-        let locationDisplay = "Lokasi tidak tersedia";
-        if (story.lat && story.lon) {
-          // Format coordinates to 4 decimal places for readability
-          const lat = parseFloat(story.lat).toFixed(4);
-          const lon = parseFloat(story.lon).toFixed(4);
-          locationDisplay = `${lat}, ${lon}`;
+      // Add to DOM
+      this.storyList.appendChild(card);
+
+      // Setup favorite button
+      const favoriteBtn = card.querySelector(".favorite-btn");
+      favoriteBtn.addEventListener("click", () => {
+        // Prevent multiple clicks while processing
+        if (favoriteBtn.getAttribute("data-processing") === "true") {
+          return;
         }
 
-        card.innerHTML = `
-          <div class="img-container">
-            <img src="${story.photoUrl}" alt="Foto cerita ${
-          story.name
-        }" loading="lazy">
-          </div>
-          <h3>${story.name}</h3>
-          <p>${story.description}</p>
-          <div class="location-display">
-            <i class="fas fa-map-marker-alt"></i> ${locationDisplay}
-          </div>
-          <p>Dibuat: ${new Date(story.createdAt).toLocaleDateString(
-            "id-ID"
-          )}</p>
-          <button class="favorite-btn ${isFavorited ? "favorited" : ""}"
-                   data-story-id="${story.id}"
-                   data-processing="false"
-                   data-favorited="${isFavorited}"
-                   aria-label="${
-                     isFavorited ? "Hapus dari favorit" : "Tambah ke favorit"
-                   }">
-            <i class="fas fa-heart"></i>
-            <span class="favorite-text">${
-              isFavorited ? "Hapus dari Favorit" : "Tambah ke Favorit"
-            }</span>
-          </button>
-        `;
+        if (this.onFavoriteClick) {
+          // Get current favorited state
+          const currentFavorited =
+            favoriteBtn.getAttribute("data-favorited") === "true";
 
-        // Add to DOM
-        this.storyList.appendChild(card);
+          // Mark as processing and show loading state
+          favoriteBtn.setAttribute("data-processing", "true");
+          this._setButtonLoading(favoriteBtn, true);
 
-        // Setup favorite button
-        const favoriteBtn = card.querySelector(".favorite-btn");
-        favoriteBtn.addEventListener("click", () => {
-          // Prevent multiple clicks while processing
-          if (favoriteBtn.getAttribute("data-processing") === "true") {
-            return;
-          }
-
-          if (this.onFavoriteClick) {
-            // Get current favorited state
-            const currentFavorited =
-              favoriteBtn.getAttribute("data-favorited") === "true";
-
-            // Mark as processing and show loading state
-            favoriteBtn.setAttribute("data-processing", "true");
-            this._setButtonLoading(favoriteBtn, true);
-
-            // Toggle favorite status - if currently favorited, remove it, otherwise add it
-            this.onFavoriteClick(story, !currentFavorited).finally(() => {
-              // Reset processing state
-              favoriteBtn.setAttribute("data-processing", "false");
-              this._setButtonLoading(favoriteBtn, false);
-            });
-          }
-        });
-
-        // Add marker to map if coordinates exist
-        if (story.lat && story.lon) {
-          this.addStoryMarker(story);
-        }
-
-        // Handle image error if needed
-        const img = card.querySelector("img");
-        if (img.complete && img.naturalHeight === 0) {
-          this._handleImageError(img);
+          // Toggle favorite status - if currently favorited, remove it, otherwise add it
+          this.onFavoriteClick(story, !currentFavorited).finally(() => {
+            // Reset processing state
+            favoriteBtn.setAttribute("data-processing", "false");
+            this._setButtonLoading(favoriteBtn, false);
+          });
         }
       });
 
-      // Hapus class transition setelah animasi selesai
-      setTimeout(() => {
-        this.storyList.classList.remove("fade-transition");
-      }, stories.length * 50 + 500);
-    }, 50);
+      // Add marker to map if coordinates exist
+      if (story.lat && story.lon) {
+        this.addStoryMarker(story);
+      }
+
+      // Handle image error if needed
+      const img = card.querySelector("img");
+      if (img.complete && img.naturalHeight === 0) {
+        this._handleImageError(img);
+      }
+    });
   }
 
   async openCamera() {

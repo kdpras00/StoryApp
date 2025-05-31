@@ -58,6 +58,14 @@ module.exports = {
           from: path.resolve(__dirname, "src/manifest.json"),
           to: path.resolve(__dirname, "dist"),
         },
+        {
+          from: path.resolve(__dirname, "public/icons/icon-144x144.png"),
+          to: path.resolve(__dirname, "dist/icons/icon-144x144.png"),
+        },
+        {
+          from: path.resolve(__dirname, "public/icons/error-icon-72x72.png"),
+          to: path.resolve(__dirname, "dist/icons/error-icon-72x72.png"),
+        },
       ],
     }),
   ],

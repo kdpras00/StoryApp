@@ -4,293 +4,244 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#1976d2">
-  <title>Offline - Story App</title>
+  <title>Offline Mode - Aplikasi Berbagi Cerita Dicoding</title>
+  <link rel="icon" href="favicon.ico" type="image/x-icon" />
+  <link rel="manifest" href="manifest.json" />
   <style>
-    body {
-      font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-      background-color: #1c2526;
-      color: #e0e0e0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
+    * {
+      box-sizing: border-box;
       margin: 0;
-      padding: 1rem;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+      background-color: #f8f9fa;
+      color: #212529;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 2rem 1rem;
       text-align: center;
     }
 
-    .offline-container {
-      background-color: #2d3536;
-      border-radius: 16px;
-      padding: 2rem;
-      max-width: 500px;
-      width: 100%;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-      animation: fadeIn 0.5s ease-in;
-    }
-
-    .icon {
+    .offline-icon {
       font-size: 5rem;
       margin-bottom: 1rem;
-      color: #e74c3c;
+      color: #6c757d;
     }
 
     h1 {
       font-size: 2rem;
       margin-bottom: 1rem;
-      color: #ffffff;
+      color: #1976d2;
     }
 
     p {
-      font-size: 1rem;
       margin-bottom: 1.5rem;
-      line-height: 1.5;
+      font-size: 1.1rem;
+    }
+
+    .card {
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
     }
 
     .btn {
+      display: inline-block;
       background-color: #1976d2;
       color: white;
       border: none;
-      padding: 0.8rem 1.5rem;
-      border-radius: 8px;
-      font-weight: 600;
+      padding: 0.75rem 1.5rem;
+      border-radius: 4px;
+      font-size: 1rem;
       cursor: pointer;
       text-decoration: none;
-      display: inline-block;
-      transition: background-color 0.3s ease;
+      transition: background-color 0.3s;
     }
 
     .btn:hover {
       background-color: #1565c0;
     }
 
-    @keyframes fadeIn {
-      from {
-        opacity: 0;
-        transform: translateY(20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
     .cached-content {
       margin-top: 2rem;
-      width: 100%;
+      text-align: left;
     }
 
-    .stories-container {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 1rem;
-      margin-top: 1.5rem;
-    }
-
-    .empty-state {
-      background-color: #1c2526;
-      padding: 1.5rem;
+    .story-item {
+      background-color: white;
       border-radius: 8px;
-      margin-top: 1rem;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      margin-bottom: 1rem;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
     }
 
-    .loader {
-      width: 40px;
-      height: 40px;
-      border: 3px solid rgba(255, 255, 255, 0.2);
-      border-radius: 50%;
-      border-top-color: #1976d2;
-      animation: spin 1s infinite linear;
-      margin: 1rem auto;
-    }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-    
-    .app-header {
-      background: linear-gradient(45deg, #1c2526, #4a4a4a);
-      padding: 1.2rem 2rem;
-      color: #ffffff;
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 9999;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    .story-header {
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      margin-bottom: 0.5rem;
     }
-    
-    .app-header h1 {
-      font-size: 1.8rem;
-      margin: 0;
+
+    .story-username {
+      font-weight: bold;
+      margin-right: 0.5rem;
     }
-    
-    .go-home {
-      margin-top: 1.5rem;
-      color: #1976d2;
-      text-decoration: none;
+
+    .story-date {
+      color: #6c757d;
+      font-size: 0.9rem;
     }
-    
-    .go-home:hover {
-      text-decoration: underline;
+
+    .story-img {
+      width: 100%;
+      max-height: 300px;
+      object-fit: cover;
+      border-radius: 4px;
+      margin-bottom: 0.5rem;
+    }
+
+    .story-description {
+      margin-bottom: 0.5rem;
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        padding: 1rem;
+      }
+
+      h1 {
+        font-size: 1.75rem;
+      }
     }
   </style>
 </head>
 <body>
-  <header class="app-header">
-    <h1>Aplikasi Berbagi Cerita</h1>
-  </header>
-
-  <div class="offline-container">
-    <div class="icon">📡</div>
-    <h1>Anda Sedang Offline</h1>
-    <p>Tidak dapat terhubung ke internet. Beberapa fitur mungkin tidak tersedia sampai koneksi pulih.</p>
-    <button class="btn" onclick="window.location.reload()">Coba Lagi</button>
+  <div class="container">
+    <div class="card">
+      <div class="offline-icon">📶</div>
+      <h1>Anda Sedang Offline</h1>
+      <p>
+        Koneksi internet tidak tersedia. Beberapa fitur mungkin tidak berfungsi
+        dengan baik.
+      </p>
+      <p>
+        Aplikasi Berbagi Cerita masih dapat digunakan dalam mode offline dengan
+        fitur terbatas.
+      </p>
+      <button id="reload-btn" class="btn">Coba Sambungkan Kembali</button>
+    </div>
 
     <div class="cached-content">
       <h2>Konten Tersimpan</h2>
-      <p>Anda masih dapat mengakses konten yang pernah Anda lihat sebelumnya.</p>
-      
-      <div class="stories-container" id="cached-stories">
-        <div class="empty-state">
-          <div class="loader"></div>
-          <p>Memeriksa konten tersimpan...</p>
-        </div>
+      <div id="cached-stories">
+        <p>Memuat konten tersimpan...</p>
       </div>
-      
-      <a href="/" class="go-home">Kembali ke Beranda</a>
     </div>
   </div>
 
   <script>
-    // Attempt to load cached stories from IndexedDB when offline
-    document.addEventListener('DOMContentLoaded', async () => {
-      try {
-        // Check if we can open the database
-        const request = indexedDB.open('story-app-db', 1);
-        
-        request.onupgradeneeded = function(event) {
-          const db = event.target.result;
-          
-          // Create object store if it doesn't exist
-          if (!db.objectStoreNames.contains('stories')) {
-            db.createObjectStore('stories', { keyPath: 'id' });
-          }
-          
-          if (!db.objectStoreNames.contains('favorites')) {
-            db.createObjectStore('favorites', { keyPath: 'id' });
-          }
-        };
-        
-        request.onsuccess = function(event) {
-          const db = event.target.result;
-          
-          // Try to get cached stories first
-          if (db.objectStoreNames.contains('stories')) {
-            const transaction = db.transaction('stories', 'readonly');
-            const store = transaction.objectStore('stories');
-            const getAll = store.getAll();
-            
-            getAll.onsuccess = function() {
-              const stories = getAll.result;
-              
-              // If we have stories, display them
-              if (stories && stories.length > 0) {
-                displayCachedStories(stories);
-                return;
-              }
-              
-              // Otherwise try to get favorites
-              if (db.objectStoreNames.contains('favorites')) {
-                const favTransaction = db.transaction('favorites', 'readonly');
-                const favStore = favTransaction.objectStore('favorites');
-                const favGetAll = favStore.getAll();
-                
-                favGetAll.onsuccess = function() {
-                  const favorites = favGetAll.result;
-                  if (favorites && favorites.length > 0) {
-                    displayCachedStories(favorites);
-                  } else {
-                    showNoContentMessage();
-                  }
-                };
-                
-                favGetAll.onerror = function() {
-                  showNoContentMessage();
-                };
-              } else {
-                showNoContentMessage();
-              }
-            };
-            
-            getAll.onerror = function() {
-              showNoContentMessage();
-            };
-          } else {
-            showNoContentMessage();
-          }
-        };
-        
-        request.onerror = function() {
-          showNoContentMessage();
-        };
-        
-      } catch (error) {
-        console.error("Error accessing IndexedDB:", error);
-        showNoContentMessage();
-      }
-    });
-    
-    // Display cached stories or show "no content" message
-    function displayCachedStories(stories) {
-      const container = document.getElementById('cached-stories');
-      
-      if (!stories || stories.length === 0) {
-        showNoContentMessage();
-        return;
-      }
-      
-      // Clear the container
-      container.innerHTML = '';
-      
-      // Display each story
-      stories.forEach(story => {
-        const storyElement = document.createElement('div');
-        storyElement.className = 'story-item';
-        storyElement.style.backgroundColor = '#2d3536';
-        storyElement.style.borderRadius = '8px';
-        storyElement.style.padding = '1rem';
-        storyElement.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
-        
-        // Create a safe description and name (in case these are undefined)
-        const name = story.name || 'Cerita Tanpa Judul';
-        const description = story.description || 'Tidak ada deskripsi';
-        const createdAt = story.createdAt ? new Date(story.createdAt).toLocaleDateString('id-ID') : 'Tanggal tidak tersedia';
-        
-        storyElement.innerHTML = `
-          <h3 style="margin-top:0;color:#ffffff;">${name}</h3>
-          <p style="font-size:0.9rem;color:#c0c0c0;">${description.substring(0, 100)}${description.length > 100 ? '...' : ''}</p>
-          <p style="font-size:0.8rem;color:#a0a0a0;">Dibuat: ${createdAt}</p>
-        `;
-        
-        container.appendChild(storyElement);
+    document.addEventListener("DOMContentLoaded", function () {
+      const reloadBtn = document.getElementById("reload-btn");
+      const cachedStoriesContainer = document.getElementById("cached-stories");
+
+      // Check if online when reload button is clicked
+      reloadBtn.addEventListener("click", function () {
+        if (navigator.onLine) {
+          window.location.href = "/";
+        } else {
+          alert("Anda masih offline. Harap periksa koneksi internet Anda.");
+        }
       });
-    }
-    
-    // Show message when no cached content is available
-    function showNoContentMessage() {
-      const container = document.getElementById('cached-stories');
-      container.innerHTML = `
-        <div class="empty-state">
-          <p>Tidak ada konten tersimpan.</p>
-          <p>Silakan kembali online untuk melihat cerita.</p>
-        </div>
-      `;
-    }
+
+      // Format date for display
+      function formatDate(dateString) {
+        const options = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+        return new Date(dateString).toLocaleDateString('id-ID', options);
+      }
+
+      // Load cached stories from IndexedDB
+      async function loadCachedStories() {
+        try {
+          // Open IndexedDB
+          const dbPromise = indexedDB.open('story-app-db', 1);
+          
+          dbPromise.onsuccess = (event) => {
+            const db = event.target.result;
+            
+            if (!db.objectStoreNames.contains('stories')) {
+              cachedStoriesContainer.innerHTML = '<p>Tidak ada konten tersimpan.</p>';
+              return;
+            }
+            
+            // Get stories from 'stories' object store
+            const tx = db.transaction('stories', 'readonly');
+            const store = tx.objectStore('stories');
+            const index = store.index('by-date');
+            const request = index.getAll();
+            
+            request.onsuccess = () => {
+              const stories = request.result;
+              
+              if (stories && stories.length > 0) {
+                // Display cached stories
+                cachedStoriesContainer.innerHTML = '';
+                
+                stories.forEach(story => {
+                  const storyElement = document.createElement('div');
+                  storyElement.className = 'story-item';
+                  
+                  storyElement.innerHTML = `
+                    <div class="story-header">
+                      <span class="story-username">${story.name}</span>
+                      <span class="story-date">${formatDate(story.createdAt)}</span>
+                    </div>
+                    ${story.photoUrl ? `<img src="${story.photoUrl}" alt="Story Image" class="story-img">` : ''}
+                    <p class="story-description">${story.description}</p>
+                  `;
+                  
+                  cachedStoriesContainer.appendChild(storyElement);
+                });
+              } else {
+                cachedStoriesContainer.innerHTML = '<p>Tidak ada konten tersimpan.</p>';
+              }
+            };
+            
+            request.onerror = () => {
+              cachedStoriesContainer.innerHTML = '<p>Gagal memuat konten tersimpan.</p>';
+            };
+          };
+          
+          dbPromise.onerror = () => {
+            cachedStoriesContainer.innerHTML = '<p>Gagal mengakses penyimpanan lokal.</p>';
+          };
+        } catch (error) {
+          console.error('Error loading cached stories:', error);
+          cachedStoriesContainer.innerHTML = '<p>Terjadi kesalahan saat memuat konten tersimpan.</p>';
+        }
+      }
+      
+      // Load cached stories when page loads
+      loadCachedStories();
+      
+      // Listen for online status changes
+      window.addEventListener('online', () => {
+        reloadBtn.textContent = 'Kembali ke Aplikasi';
+      });
+      
+      window.addEventListener('offline', () => {
+        reloadBtn.textContent = 'Coba Sambungkan Kembali';
+      });
+    });
   </script>
 </body>
 </html> 
