@@ -200,7 +200,6 @@ class Presenter {
       return;
     }
 
-    const formData = new FormData();
     let photoBlob;
 
     if (photoFile) {
@@ -228,13 +227,15 @@ class Presenter {
       return;
     }
 
-    formData.append("description", description);
-    formData.append("photo", photoBlob, "story.jpg");
-    formData.append("lat", this.location.lat);
-    formData.append("lon", this.location.lng);
-
     try {
-      const result = await this.model.addStory(formData);
+      // Pass individual parameters instead of FormData
+      const result = await this.model.addStory(
+        description,
+        photoBlob,
+        this.location.lat,
+        this.location.lng
+      );
+
       this.view.showMessage(result.message, result.error);
       if (!result.error) {
         this.cleanupAfterStorySubmit();
