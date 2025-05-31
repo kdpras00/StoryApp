@@ -7,7 +7,7 @@ module.exports = merge(common, {
     // Try this explicit IPv4 address if "localhost" isn't working
     // host: "127.0.0.1",
     host: "localhost",
-    port: 3000,
+    port: 8080,
     // Uncomment these lines if WebSocket issues persist
     // hot: false,
     // liveReload: false,
