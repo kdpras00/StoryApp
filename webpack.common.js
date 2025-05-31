@@ -66,6 +66,14 @@ module.exports = {
           from: path.resolve(__dirname, "public/icons/error-icon-72x72.png"),
           to: path.resolve(__dirname, "dist/icons/error-icon-72x72.png"),
         },
+        {
+          from: path.resolve(__dirname, "public/screenshots/desktop.png"),
+          to: path.resolve(__dirname, "dist/screenshots/desktop.png"),
+        },
+        {
+          from: path.resolve(__dirname, "public/screenshots/mobile.png"),
+          to: path.resolve(__dirname, "dist/screenshots/mobile.png"),
+        },
       ],
     }),
   ],

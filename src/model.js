@@ -13,6 +13,25 @@ class Model {
   constructor() {
     this.API_BASE_URL = API_BASE_URL;
     this.token = localStorage.getItem("token") || null;
+
+    // Validate token format to prevent invalid token errors
+    if (this.token) {
+      try {
+        // Simple validation: JWT tokens have at least 2 dots
+        if (!this.token.includes(".") || this.token.split(".").length < 3) {
+          console.warn(
+            "Invalid token format found in localStorage, clearing it"
+          );
+          localStorage.removeItem("token");
+          this.token = null;
+        }
+      } catch (e) {
+        console.error("Error validating token:", e);
+        localStorage.removeItem("token");
+        this.token = null;
+      }
+    }
+
     this._isLoggedIn = !!this.token;
     this.stories = [];
     this.favorites = JSON.parse(localStorage.getItem("favorites")) || [];
@@ -337,6 +356,14 @@ class Model {
   // Get stories with offline support
   async getStories() {
     try {
+      // Check token validity first
+      if (!this.token || !this.isLoggedIn()) {
+        console.warn("No valid token available for API request");
+        // Try to get cached stories when not logged in
+        this.stories = await this.getStoriesFromIndexedDB();
+        return this.stories;
+      }
+
       if (navigator.onLine) {
         // Online: get from API and store in IndexedDB
         const response = await fetch(`${this.API_BASE_URL}/stories`, {
@@ -344,6 +371,19 @@ class Model {
             Authorization: `Bearer ${this.token}`,
           },
         });
+
+        // Handle unauthorized errors specifically
+        if (response.status === 401) {
+          console.warn("Unauthorized: Invalid or expired token");
+          // Clear invalid token
+          localStorage.removeItem("token");
+          this.token = null;
+          this._isLoggedIn = false;
+
+          // Try to get cached stories
+          this.stories = await this.getStoriesFromIndexedDB();
+          return this.stories;
+        }
 
         const responseData = await response.json();
 

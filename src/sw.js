@@ -3,39 +3,64 @@ importScripts(
   "https://storage.googleapis.com/workbox-cdn/releases/6.5.4/workbox-sw.js"
 );
 
+// Define helper functions globally so they're available throughout the service worker
+// Get the base path (will be '/' locally or '/subdirectory/' on Netlify if deployed to a subdirectory)
+const getBasePath = () => {
+  const path = self.location.pathname.replace(/\/[^\/]*$/, "/");
+  console.log("Using base path:", path);
+  return path;
+};
+
+const basePath = getBasePath();
+
+// Build paths by prepending the base path
+const buildPath = (path) => {
+  // If path already starts with base path or is an absolute URL, return as is
+  if (path.startsWith(basePath) || path.match(/^https?:\/\//)) {
+    return path;
+  }
+  // Remove leading slash if present
+  const cleanPath = path.startsWith("/") ? path.slice(1) : path;
+  return `${basePath}${cleanPath}`;
+};
+
 // Check if Workbox loaded successfully
 if (workbox) {
   console.log(`Workbox berhasil dimuat`);
-  workbox.precaching.precacheAndRoute([
-    { url: "/", revision: "1" },
-    { url: "/index.html", revision: "1" },
-    { url: "/offline.html", revision: "1" },
-    { url: "/manifest.json", revision: "1" },
-    // Remove source files that don't exist in production build
-    // { url: "/src/style.css", revision: "1" },
-    // { url: "/src/app.js", revision: "1" },
-    // { url: "/src/model.js", revision: "1" },
-    // { url: "/src/view.js", revision: "1" },
-    // { url: "/src/presenter.js", revision: "1" },
-    // { url: "/src/sw.js", revision: "1" },
-    // Instead, cache the bundled JS files
-    { url: "/main.bundle.js", revision: "1" },
-    { url: "/sw.js", revision: "1" },
-    // Only include icons that actually exist
-    { url: "/icons/icon-144x144.png", revision: "1" },
-    { url: "/icons/error-icon-72x72.png", revision: "1" },
-    // Add screenshots for the app manifest
-    { url: "/screenshots/desktop.png", revision: "1" },
-    { url: "/screenshots/mobile.png", revision: "1" },
-    // Removed non-existent icons
-    // { url: "/icons/icon-72x72.png", revision: "1" },
-    // { url: "/icons/icon-96x96.png", revision: "1" },
-    // { url: "/icons/icon-128x128.png", revision: "1" },
-    // { url: "/icons/icon-152x152.png", revision: "1" },
-    // { url: "/icons/icon-192x192.png", revision: "1" },
-    // { url: "/icons/icon-384x384.png", revision: "1" },
-    // { url: "/icons/icon-512x512.png", revision: "1" },
-  ]);
+
+  // Files to precache
+  const filesToCache = [
+    { url: "index.html", revision: "1" },
+    { url: "offline.html", revision: "1" },
+    { url: "manifest.json", revision: "1" },
+    { url: "main.bundle.js", revision: "1" },
+    { url: "sw.js", revision: "1" },
+    { url: "icons/icon-144x144.png", revision: "1" },
+    { url: "icons/error-icon-72x72.png", revision: "1" },
+    // Remove screenshot files that might not exist
+    // { url: "screenshots/desktop.png", revision: "1" },
+    // { url: "screenshots/mobile.png", revision: "1" },
+  ];
+
+  // Build full paths for each file
+  const precacheList = filesToCache.map((entry) => {
+    return {
+      url: buildPath(entry.url),
+      revision: entry.revision,
+    };
+  });
+
+  // Add the root URL
+  precacheList.push({
+    url: basePath,
+    revision: "1",
+  });
+
+  // Log the precache list for debugging
+  console.log("Precaching the following URLs:", precacheList);
+
+  // Precache the files
+  workbox.precaching.precacheAndRoute(precacheList);
 
   // Cache the Google Fonts stylesheets with a stale-while-revalidate strategy.
   workbox.routing.registerRoute(
@@ -116,11 +141,13 @@ if (workbox) {
   // Offline fallback for pages
   workbox.routing.setCatchHandler(async ({ event }) => {
     if (event.request.destination === "document") {
-      return workbox.precaching.matchPrecache("/offline.html");
+      return workbox.precaching.matchPrecache(buildPath("offline.html"));
     }
 
     if (event.request.destination === "image") {
-      return workbox.precaching.matchPrecache("/icons/icon-144x144.png");
+      return workbox.precaching.matchPrecache(
+        buildPath("icons/icon-144x144.png")
+      );
     }
 
     return Response.error();
@@ -135,8 +162,8 @@ self.addEventListener("push", (event) => {
     title: "Story App Notification",
     options: {
       body: "Ada konten cerita baru!",
-      icon: "/icons/icon-144x144.png",
-      badge: "/icons/error-icon-72x72.png",
+      icon: buildPath("icons/icon-144x144.png"),
+      badge: buildPath("icons/error-icon-72x72.png"),
       data: {
         url: self.location.origin,
       },

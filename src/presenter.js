@@ -432,7 +432,36 @@ class Presenter {
     }
 
     try {
-      const registration = await navigator.serviceWorker.register("/sw.js");
+      // This approach works on both local and production environments
+      // Use relative path which is more flexible for different deployments
+      const registration = await navigator.serviceWorker.register("sw.js", {
+        scope: "./",
+      });
+
+      // Wait for the service worker to be ready and active
+      if (registration.installing || registration.waiting) {
+        console.log(
+          "Service worker is installing or waiting, waiting for it to become active"
+        );
+
+        // Create a promise that resolves when the service worker becomes active
+        await new Promise((resolve) => {
+          if (registration.active) {
+            resolve();
+            return;
+          }
+
+          // Listen for state changes
+          const serviceWorker = registration.installing || registration.waiting;
+          serviceWorker.addEventListener("statechange", (event) => {
+            if (event.target.state === "activated") {
+              console.log("Service worker activated successfully");
+              resolve();
+            }
+          });
+        });
+      }
+
       const permissionStatus = Notification.permission;
 
       switch (permissionStatus) {
@@ -643,27 +672,42 @@ class Presenter {
   }
 
   async checkForNewStories() {
-    const currentStories = await this.model.getStories();
-    const lastKnownStoryId = localStorage.getItem("lastKnownStoryId");
-
-    if (
-      currentStories.length > 0 &&
-      lastKnownStoryId !== currentStories[0].id
-    ) {
-      // Ada cerita baru, tampilkan notifikasi
-      if (Notification.permission === "granted") {
-        const registration = await navigator.serviceWorker.getRegistration();
-        if (registration) {
-          registration.showNotification("Cerita Baru", {
-            body: "Ada cerita baru yang ditambahkan!",
-            icon: "/icons/icon-144x144.png",
-            badge: "/icons/error-icon-72x72.png",
-          });
-        }
+    try {
+      // Only check for new stories if the user is logged in
+      if (!this.model.isLoggedIn()) {
+        return;
       }
 
-      // Simpan ID cerita terbaru
-      localStorage.setItem("lastKnownStoryId", currentStories[0].id);
+      const currentStories = await this.model.getStories();
+      // If no stories or error occurred, don't proceed
+      if (!currentStories || !currentStories.length) {
+        return;
+      }
+
+      const lastKnownStoryId = localStorage.getItem("lastKnownStoryId");
+
+      if (
+        currentStories.length > 0 &&
+        lastKnownStoryId !== currentStories[0].id
+      ) {
+        // Ada cerita baru, tampilkan notifikasi
+        if (Notification.permission === "granted") {
+          const registration = await navigator.serviceWorker.getRegistration();
+          if (registration && registration.active) {
+            registration.showNotification("Cerita Baru", {
+              body: "Ada cerita baru yang ditambahkan!",
+              icon: "icons/icon-144x144.png",
+              badge: "icons/error-icon-72x72.png",
+            });
+          }
+        }
+
+        // Simpan ID cerita terbaru
+        localStorage.setItem("lastKnownStoryId", currentStories[0].id);
+      }
+    } catch (error) {
+      console.error("Error checking for new stories:", error);
+      // Don't throw the error to prevent app disruption
     }
   }
 }
