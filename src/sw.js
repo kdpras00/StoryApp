@@ -19,13 +19,14 @@ if (workbox) {
     // { url: "/src/presenter.js", revision: "1" },
     // { url: "/src/sw.js", revision: "1" },
     // Instead, cache the bundled JS files
-    { url: "/main~bef837c7.bundle.js", revision: "1" },
-    { url: "/main~e96e9bea.bundle.js", revision: "1" },
-    { url: "/main~ef7d455c.bundle.js", revision: "1" },
-    { url: "/main~34732860.bundle.js", revision: "1" },
+    { url: "/main.bundle.js", revision: "1" },
     { url: "/sw.js", revision: "1" },
     // Only include icons that actually exist
     { url: "/icons/icon-144x144.png", revision: "1" },
+    { url: "/icons/error-icon-72x72.png", revision: "1" },
+    // Add screenshots for the app manifest
+    { url: "/screenshots/desktop.png", revision: "1" },
+    { url: "/screenshots/mobile.png", revision: "1" },
     // Removed non-existent icons
     // { url: "/icons/icon-72x72.png", revision: "1" },
     // { url: "/icons/icon-96x96.png", revision: "1" },

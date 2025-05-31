@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>StoryApp</title>
     <link rel="icon" href="favicon.ico" type="image/x-icon" />
-    <link rel="manifest" href="/manifest.json" />
+    <link rel="manifest" href="./manifest.json" />
     <meta name="theme-color" content="#1976d2" />
-    <link rel="apple-touch-icon" href="/icons/icon-144x144.png" />
+    <link rel="apple-touch-icon" href="./icons/icon-144x144.png" />
     <link
       rel="stylesheet"
       href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"
@@ -249,9 +249,16 @@
       </section>
 
       <section id="not-found" class="page hidden">
-        <h2>Page Not Found</h2>
-        <p>Sorry, the page you are looking for is not available.</p>
-        <a href="#home">Back to Home</a>
+        <div class="not-found-container">
+          <i class="fas fa-exclamation-triangle fa-5x"></i>
+          <h2>Halaman Tidak Ditemukan</h2>
+          <p>Maaf, halaman yang Anda cari tidak tersedia atau telah dipindahkan.</p>
+          <div class="not-found-actions">
+            <a href="#home" class="btn-primary">
+              <i class="fas fa-home"></i> Kembali ke Beranda
+            </a>
+          </div>
+        </div>
       </section>
     </main>
 

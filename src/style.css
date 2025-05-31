@@ -1544,3 +1544,69 @@ button.loading::after {
 .empty-state i {
   animation: none;
 }
+
+/* Not Found page styling */
+.not-found-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 3rem 1rem;
+  max-width: 600px;
+  margin: 0 auto;
+  background-color: #2d3536;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.not-found-container i {
+  color: #e74c3c;
+  margin-bottom: 1.5rem;
+}
+
+.not-found-container h2 {
+  font-size: 2rem;
+  color: #ffffff;
+  margin-bottom: 1rem;
+}
+
+.not-found-container p {
+  color: #a0a0a0;
+  margin-bottom: 2rem;
+  font-size: 1.1rem;
+  line-height: 1.5;
+}
+
+.not-found-actions {
+  margin-top: 1rem;
+}
+
+.not-found-actions a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.8rem 1.5rem;
+  text-decoration: none;
+  background-color: #1976d2;
+  color: white;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.not-found-actions a:hover {
+  background-color: #1565c0;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 480px) {
+  .not-found-container h2 {
+    font-size: 1.5rem;
+  }
+
+  .not-found-container p {
+    font-size: 1rem;
+  }
+}
