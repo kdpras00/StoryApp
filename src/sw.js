@@ -11,15 +11,6 @@ if (workbox) {
     { url: "/index.html", revision: "1" },
     { url: "/offline.html", revision: "1" },
     { url: "/manifest.json", revision: "1" },
-    // Remove source files that don't exist in production build
-    // { url: "/src/style.css", revision: "1" },
-    // { url: "/src/app.js", revision: "1" },
-    // { url: "/src/model.js", revision: "1" },
-    // { url: "/src/view.js", revision: "1" },
-    // { url: "/src/presenter.js", revision: "1" },
-    // { url: "/src/sw.js", revision: "1" },
-    // Instead, cache the bundled JS files
-    { url: "/main.bundle.js", revision: "1" },
     { url: "/sw.js", revision: "1" },
     // Only include icons that actually exist
     { url: "/icons/icon-144x144.png", revision: "1" },
@@ -28,15 +19,23 @@ if (workbox) {
     // Add screenshots for the app manifest
     { url: "/screenshots/dekstop.png", revision: "1" },
     { url: "/screenshots/mobile.png", revision: "1" },
-    // Removed non-existent icons
-    // { url: "/icons/icon-72x72.png", revision: "1" },
-    // { url: "/icons/icon-96x96.png", revision: "1" },
-    // { url: "/icons/icon-128x128.png", revision: "1" },
-    // { url: "/icons/icon-152x152.png", revision: "1" },
-    // { url: "/icons/icon-192x192.png", revision: "1" },
-    // { url: "/icons/icon-384x384.png", revision: "1" },
-    // { url: "/icons/icon-512x512.png", revision: "1" },
   ]);
+
+  // Cache all JS bundles (including chunked files with hashes)
+  workbox.routing.registerRoute(
+    /\.(?:js)$/,
+    new workbox.strategies.StaleWhileRevalidate({
+      cacheName: "js-cache",
+    })
+  );
+
+  // Cache CSS Files
+  workbox.routing.registerRoute(
+    /\.(?:css)$/,
+    new workbox.strategies.StaleWhileRevalidate({
+      cacheName: "css-cache",
+    })
+  );
 
   // Cache the Google Fonts stylesheets with a stale-while-revalidate strategy.
   workbox.routing.registerRoute(
@@ -60,14 +59,6 @@ if (workbox) {
           maxEntries: 30,
         }),
       ],
-    })
-  );
-
-  // Cache CSS and JavaScript Files
-  workbox.routing.registerRoute(
-    /\.(?:js|css)$/,
-    new workbox.strategies.StaleWhileRevalidate({
-      cacheName: "static-resources",
     })
   );
 
