@@ -169,7 +169,13 @@ export const removeFromFavorites = async (storyId) => {
 
     return new Promise((resolve, reject) => {
       tx.oncomplete = () => resolve(true);
-      tx.onerror = (event) => reject(event.target.error);
+      tx.onerror = (event) => {
+        console.error(
+          "Error in removeFromFavorites transaction:",
+          event.target.error
+        );
+        resolve(false); // Resolve with false instead of rejecting to prevent errors
+      };
     });
   } catch (error) {
     console.error("Error removing from favorites:", error);

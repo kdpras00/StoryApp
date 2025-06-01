@@ -31,6 +31,24 @@ const app = async () => {
       view.navigateTo("login");
     }
   });
+
+  // Add global error handler for unhandled promise rejections
+  window.addEventListener("unhandledrejection", (event) => {
+    console.error("Unhandled Promise Rejection:", event.reason);
+
+    // Check if it's related to iterating non-iterables
+    if (
+      event.reason &&
+      event.reason.message &&
+      event.reason.message.includes("iterate non-iterable")
+    ) {
+      console.warn(
+        "Caught iteration error - this may be related to IndexedDB operations"
+      );
+      // Prevent the error from propagating
+      event.preventDefault();
+    }
+  });
 };
 
 window.addEventListener("load", app);
