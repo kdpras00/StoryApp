@@ -382,20 +382,17 @@ class Model {
   }
 
   // Add story with offline support
-  async addStory(description, photo, lat, lon) {
-    const formData = new FormData();
-    formData.append("description", description);
-    formData.append("photo", photo);
-
-    if (lat && lon) {
-      formData.append("lat", lat);
-      formData.append("lon", lon);
-    }
-
+  async addStory(formData) {
     try {
       if (navigator.onLine) {
         return await this.addStoryOnline(formData);
       } else {
+        // For offline support, extract data from the FormData
+        const description = formData.get("description");
+        const photo = formData.get("photo");
+        const lat = formData.get("lat");
+        const lon = formData.get("lon");
+
         // Save action for later sync
         await this.addOfflineAction("addStory", {
           description,

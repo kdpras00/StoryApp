@@ -201,35 +201,27 @@ class Presenter {
     }
 
     const formData = new FormData();
-    let photoBlob;
 
-    if (photoFile) {
-      if (photoFile.size > 1 * 1024 * 1024) {
-        this.view.showMessage("Ukuran foto terlalu besar. Maksimal 1MB.", true);
-        return;
-      }
-      photoBlob = photoFile;
+    formData.append("description", description);
+
+    // Ensure we're sending a Blob or File object for the photo
+    if (photoFile instanceof Blob || photoFile instanceof File) {
+      formData.append("photo", photoFile, "story.jpg");
     } else if (imageData) {
+      // Try to fetch the image data and convert to blob again
       try {
-        photoBlob = await (await fetch(imageData)).blob();
-        if (photoBlob.size > 1 * 1024 * 1024) {
-          this.view.showMessage(
-            "Ukuran foto terlalu besar. Maksimal 1MB.",
-            true
-          );
-          return;
-        }
+        const response = await fetch(imageData);
+        const blob = await response.blob();
+        formData.append("photo", blob, "story.jpg");
       } catch (error) {
-        this.view.showMessage("Gagal memproses gambar dari kamera.", true);
+        this.view.showMessage("Gagal memproses gambar: " + error.message, true);
         return;
       }
     } else {
-      this.view.showMessage("Harap pilih foto atau ambil gambar.", true);
+      this.view.showMessage("Harap pilih foto untuk diunggah", true);
       return;
     }
 
-    formData.append("description", description);
-    formData.append("photo", photoBlob, "story.jpg");
     formData.append("lat", this.location.lat);
     formData.append("lon", this.location.lng);
 

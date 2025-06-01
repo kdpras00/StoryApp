@@ -232,7 +232,7 @@
 
       <section id="add-story" class="page hidden">
         <h2>Tambah Cerita Baru</h2>
-        <form id="story-form">
+        <form id="story-form" enctype="multipart/form-data">
           <div class="form-group">
             <label for="description"
               ><i class="fas fa-comment"></i> Deskripsi Cerita</label
@@ -288,6 +288,8 @@
               <i class="fas fa-info-circle"></i> Klik pada peta untuk memilih
               lokasi
             </p>
+            <input type="hidden" id="lat" name="lat" />
+            <input type="hidden" id="lon" name="lon" />
           </div>
 
           <button type="submit" class="btn-primary">
