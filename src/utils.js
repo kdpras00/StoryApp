@@ -39,6 +39,12 @@ const openDB = () => {
 // Save stories to IndexedDB
 export const saveStoriesToIndexedDB = async (stories) => {
   try {
+    // Ensure stories is an array
+    if (!Array.isArray(stories)) {
+      console.error("saveStoriesToIndexedDB received non-array:", stories);
+      stories = [];
+    }
+
     const db = await openDB();
     const tx = db.transaction(STORY_STORE, "readwrite");
     const store = tx.objectStore(STORY_STORE);
@@ -47,13 +53,28 @@ export const saveStoriesToIndexedDB = async (stories) => {
     await store.clear();
 
     // Add new stories
-    stories.forEach((story) => {
-      store.add(story);
-    });
+    for (const story of stories) {
+      try {
+        if (story && typeof story === "object" && story.id) {
+          store.add(story);
+        } else {
+          console.warn("Skipping invalid story:", story);
+        }
+      } catch (itemError) {
+        console.error("Error adding story item:", itemError);
+        // Continue with other items
+      }
+    }
 
     return new Promise((resolve, reject) => {
       tx.oncomplete = () => resolve(true);
-      tx.onerror = (event) => reject(event.target.error);
+      tx.onerror = (event) => {
+        console.error(
+          "Transaction error in saveStoriesToIndexedDB:",
+          event.target.error
+        );
+        reject(event.target.error);
+      };
     });
   } catch (error) {
     console.error("Error saving stories to IndexedDB:", error);
@@ -70,8 +91,15 @@ export const getStoriesFromIndexedDB = async () => {
     const request = store.getAll();
 
     return new Promise((resolve, reject) => {
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = (event) => reject(event.target.error);
+      request.onsuccess = () => {
+        // Ensure we always return an array
+        const result = Array.isArray(request.result) ? request.result : [];
+        resolve(result);
+      };
+      request.onerror = (event) => {
+        console.error("Error in getAll request:", event.target.error);
+        resolve([]); // Return empty array on error
+      };
     });
   } catch (error) {
     console.error("Error getting stories from IndexedDB:", error);
@@ -158,8 +186,15 @@ export const getFavoriteStories = async () => {
     const request = store.getAll();
 
     return new Promise((resolve, reject) => {
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = (event) => reject(event.target.error);
+      request.onsuccess = () => {
+        // Ensure we always return an array
+        const result = Array.isArray(request.result) ? request.result : [];
+        resolve(result);
+      };
+      request.onerror = (event) => {
+        console.error("Error in getAll request:", event.target.error);
+        resolve([]); // Return empty array on error
+      };
     });
   } catch (error) {
     console.error("Error getting favorite stories:", error);

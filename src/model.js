@@ -74,16 +74,37 @@ class Model {
     if (!this.db) return;
 
     try {
+      // Ensure stories is an array
+      if (!Array.isArray(stories)) {
+        console.error("saveStoriesToIndexedDB received non-array:", stories);
+        stories = [];
+      }
+
       const tx = this.db.transaction("stories", "readwrite");
       const store = tx.objectStore("stories");
 
       for (const story of stories) {
-        store.put(story);
+        try {
+          if (story && typeof story === "object" && story.id) {
+            store.put(story);
+          } else {
+            console.warn("Skipping invalid story:", story);
+          }
+        } catch (itemError) {
+          console.error("Error adding story item:", itemError);
+          // Continue with other items
+        }
       }
 
       return new Promise((resolve, reject) => {
         tx.oncomplete = () => resolve();
-        tx.onerror = (event) => reject(event.target.error);
+        tx.onerror = (event) => {
+          console.error(
+            "Transaction error in saveStoriesToIndexedDB:",
+            event.target.error
+          );
+          reject(event.target.error);
+        };
       });
     } catch (error) {
       console.error("Error saving stories to IndexedDB:", error);
@@ -187,11 +208,28 @@ class Model {
     try {
       const tx = this.db.transaction("favorites", "readonly");
       const store = tx.objectStore("favorites");
-      const favorites = await store.getAll();
 
       return new Promise((resolve, reject) => {
-        tx.oncomplete = () => resolve(favorites);
-        tx.onerror = (event) => reject(event.target.error);
+        const request = store.getAll();
+
+        request.onsuccess = () => {
+          // Ensure we always return an array
+          const result = Array.isArray(request.result) ? request.result : [];
+          resolve(result);
+        };
+
+        request.onerror = (event) => {
+          console.error("Error in getAll request:", event.target.error);
+          resolve([]); // Return empty array on error
+        };
+
+        tx.onerror = (event) => {
+          console.error(
+            "Transaction error in getFavoritesFromIndexedDB:",
+            event.target.error
+          );
+          resolve([]); // Return empty array on error
+        };
       });
     } catch (error) {
       console.error("Error getting favorites from IndexedDB:", error);
@@ -227,12 +265,6 @@ class Model {
 
   // Sync offline data when back online
   async syncOfflineData() {
-    // Disable this function temporarily to avoid errors
-    console.log("Offline data sync disabled temporarily");
-    return;
-
-    // Original code below
-    /*
     if (!this.db || !navigator.onLine || !this.isLoggedIn()) return;
 
     try {
@@ -244,57 +276,101 @@ class Model {
 
       const tx = this.db.transaction("offlineActions", "readwrite");
       const store = tx.objectStore("offlineActions");
-      const actions = await store.getAll();
 
-      for (const action of actions) {
-        if (action.synced) continue;
+      // Get all actions and ensure it's an array
+      const actionsRequest = store.getAll();
 
-        try {
-          switch (action.type) {
-            case "addStory":
-              await this.addStoryOnline(action.data);
-              break;
-            case "toggleFavorite":
-              // We don't need to sync favorites to server, just local storage
-              break;
-            // Add more action types as needed
-          }
+      return new Promise((resolve, reject) => {
+        actionsRequest.onsuccess = async () => {
+          try {
+            const actions = Array.isArray(actionsRequest.result)
+              ? actionsRequest.result
+              : [];
 
-          // Mark action as synced
-          action.synced = true;
-          store.put(action);
-        } catch (error) {
-          console.error(`Error syncing action ${action.type}:`, error);
-        }
-      }
+            for (const action of actions) {
+              if (action.synced) continue;
 
-      try {
-        // Clean up synced actions if by-type index exists
-        if (
-          store.indexNames &&
-          store.indexNames.contains &&
-          store.indexNames.contains("by-type")
-        ) {
-          const cleanupTx = this.db.transaction("offlineActions", "readwrite");
-          const cleanupStore = cleanupTx.objectStore("offlineActions");
-          const syncedActions = await cleanupStore
-            .index("by-type")
-            .getAll(IDBKeyRange.only(true));
+              try {
+                switch (action.type) {
+                  case "addStory":
+                    await this.addStoryOnline(action.data);
+                    break;
+                  case "toggleFavorite":
+                    // We don't need to sync favorites to server, just local storage
+                    break;
+                  // Add more action types as needed
+                }
 
-          if (syncedActions && syncedActions.length) {
-            for (const action of syncedActions) {
-              cleanupStore.delete(action.timestamp);
+                // Mark action as synced
+                action.synced = true;
+                store.put(action);
+              } catch (actionError) {
+                console.error(
+                  `Error syncing action ${action.type}:`,
+                  actionError
+                );
+              }
             }
+
+            // Clean up synced actions if by-type index exists
+            try {
+              if (
+                store.indexNames &&
+                store.indexNames.contains &&
+                store.indexNames.contains("by-type")
+              ) {
+                const cleanupTx = this.db.transaction(
+                  "offlineActions",
+                  "readwrite"
+                );
+                const cleanupStore = cleanupTx.objectStore("offlineActions");
+                const syncedRequest = cleanupStore
+                  .index("by-type")
+                  .getAll(IDBKeyRange.only(true));
+
+                syncedRequest.onsuccess = () => {
+                  const syncedActions = Array.isArray(syncedRequest.result)
+                    ? syncedRequest.result
+                    : [];
+
+                  if (syncedActions.length) {
+                    for (const action of syncedActions) {
+                      cleanupStore.delete(action.timestamp);
+                    }
+                  }
+                };
+              }
+            } catch (cleanupError) {
+              console.warn(
+                "Error during cleanup of synced actions:",
+                cleanupError
+              );
+              // Continue execution - cleanup failure is not critical
+            }
+
+            resolve();
+          } catch (error) {
+            console.error("Error processing offline actions:", error);
+            resolve();
           }
-        }
-      } catch (cleanupError) {
-        console.warn("Error during cleanup of synced actions:", cleanupError);
-        // Continue execution - cleanup failure is not critical
-      }
+        };
+
+        actionsRequest.onerror = (event) => {
+          console.error("Error getting offline actions:", event.target.error);
+          resolve(); // Resolve anyway to prevent blocking
+        };
+
+        tx.onerror = (event) => {
+          console.error(
+            "Transaction error in syncOfflineData:",
+            event.target.error
+          );
+          resolve(); // Resolve anyway to prevent blocking
+        };
+      });
     } catch (error) {
       console.error("Error syncing offline data:", error);
     }
-    */
   }
 
   // Login method
