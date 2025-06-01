@@ -29,7 +29,7 @@
   ],
   "screenshots": [
     {
-      "src": "screenshots/desktop.png",
+      "src": "screenshots/dekstop.png",
       "sizes": "1080x1920",
       "type": "image/png",
       "form_factor": "wide",

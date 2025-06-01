@@ -26,7 +26,7 @@ if (workbox) {
     { url: "/icons/icon-192x192.png", revision: "1" },
     { url: "/icons/error-icon-72x72.png", revision: "1" },
     // Add screenshots for the app manifest
-    { url: "/screenshots/desktop.png", revision: "1" },
+    { url: "/screenshots/dekstop.png", revision: "1" },
     { url: "/screenshots/mobile.png", revision: "1" },
     // Removed non-existent icons
     // { url: "/icons/icon-72x72.png", revision: "1" },
