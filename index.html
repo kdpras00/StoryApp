@@ -312,6 +312,76 @@
           </div>
         </div>
       </section>
+
+      <!-- Detail Story page - Ditambahkan untuk kriteria wajib indexedDB -->
+      <section id="story-detail" class="page hidden">
+        <div class="detail-nav">
+          <a href="#home" class="back-btn">
+            <i class="fas fa-arrow-left"></i> Kembali
+          </a>
+        </div>
+        <div class="detail-container">
+          <div id="detail-content" class="detail-content">
+            <!-- Content will be filled dynamically -->
+          </div>
+          <div class="detail-actions">
+            <button id="edit-story" class="btn-secondary">
+              <i class="fas fa-edit"></i> Edit Cerita
+            </button>
+            <button id="delete-story" class="btn-danger">
+              <i class="fas fa-trash"></i> Hapus Cerita
+            </button>
+          </div>
+        </div>
+      </section>
+      
+      <!-- Edit Story Form - Ditambahkan untuk kriteria wajib indexedDB -->
+      <section id="edit-story-page" class="page hidden">
+        <div class="detail-nav">
+          <a href="#story-detail" class="back-btn" id="back-to-detail">
+            <i class="fas fa-arrow-left"></i> Kembali
+          </a>
+        </div>
+        <h2>Edit Cerita</h2>
+        <form id="edit-story-form" enctype="multipart/form-data">
+          <input type="hidden" id="edit-story-id" name="storyId" />
+          <div class="form-group">
+            <label for="edit-description">
+              <i class="fas fa-comment"></i> Deskripsi Cerita
+            </label>
+            <textarea
+              id="edit-description"
+              name="description"
+              required
+              aria-label="Deskripsi cerita"
+            ></textarea>
+          </div>
+
+          <div class="form-group">
+            <label><i class="fas fa-camera"></i> Foto Cerita</label>
+            <div class="image-input-container">
+              <img id="edit-preview" alt="Pratinjau foto cerita" />
+              <div class="file-upload-container">
+                <input
+                  type="file"
+                  id="edit-photo"
+                  name="photo"
+                  accept="image/*"
+                  class="file-input"
+                />
+                <label for="edit-photo" class="file-label">
+                  <i class="fas fa-upload"></i> Ubah Foto
+                </label>
+              </div>
+              <p class="photo-hint">(Biarkan kosong jika tidak ingin mengubah foto)</p>
+            </div>
+          </div>
+
+          <button type="submit" class="btn-primary">
+            <i class="fas fa-save"></i> Simpan Perubahan
+          </button>
+        </form>
+      </section>
     </main>
 
     <link

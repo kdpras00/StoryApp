@@ -31,6 +31,17 @@ class View {
     this.closeCameraBtn = document.getElementById("close-camera");
     this.cameraContainer = document.getElementById("camera-container");
 
+    // Detail elements - Ditambahkan untuk kriteria wajib IndexedDB
+    this.detailContent = document.getElementById("detail-content");
+    this.editStoryBtn = document.getElementById("edit-story");
+    this.deleteStoryBtn = document.getElementById("delete-story");
+    this.editStoryForm = document.getElementById("edit-story-form");
+    this.editPreview = document.getElementById("edit-preview");
+    this.editPhotoInput = document.getElementById("edit-photo");
+    this.editDescription = document.getElementById("edit-description");
+    this.editStoryId = document.getElementById("edit-story-id");
+    this.backToDetailBtn = document.getElementById("back-to-detail");
+
     this.map = null;
     this.storyMap = null;
     this.currentMarker = null;
@@ -38,6 +49,7 @@ class View {
     this.stream = null;
     this.capturedImageData = null;
     this.isCameraActive = false;
+    this.currentStoryId = null; // Untuk menyimpan ID cerita yang sedang ditampilkan
 
     // Story filtering state
     this.allStories = []; // Store all stories for filtering
@@ -54,11 +66,15 @@ class View {
     this.onMapClick = null;
     this.onFavoriteClick = null; // Added for favorite functionality
     this.onFilterChange = null; // Added for filter functionality
+    this.onStoryClick = null; // Untuk menangani klik pada cerita
+    this.onEditStorySubmit = null; // Untuk menangani submit form edit cerita
+    this.onDeleteStory = null; // Untuk menangani hapus cerita
 
     this._initializeEventListeners();
     this._setupImageErrorHandling();
     this._setupAuthLinks();
     this._setupStoryFilters();
+    this._setupStoryDetailActions();
   }
 
   _initializeEventListeners() {
@@ -68,6 +84,7 @@ class View {
     this._setupNavigationEventListeners();
     this._setupPasswordToggle();
     this._setupFormValidation();
+    this._setupEditPhotoInput(); // Ditambahkan untuk input foto edit
   }
 
   _setupSkipToContent() {
@@ -339,6 +356,7 @@ class View {
       const card = document.createElement("div");
       card.className = "story-card";
       card.setAttribute("role", "listitem");
+      card.setAttribute("data-story-id", story.id);
 
       const isFavorited = favorites.some((fav) => fav.id === story.id);
 
@@ -375,6 +393,9 @@ class View {
             isFavorited ? "Hapus dari Favorit" : "Tambah ke Favorit"
           }</span>
         </button>
+        <button class="view-detail-btn" data-story-id="${story.id}">
+          <i class="fas fa-eye"></i> Lihat Detail
+        </button>
       `;
 
       // Add to DOM
@@ -382,7 +403,10 @@ class View {
 
       // Setup favorite button
       const favoriteBtn = card.querySelector(".favorite-btn");
-      favoriteBtn.addEventListener("click", () => {
+      favoriteBtn.addEventListener("click", (e) => {
+        // Prevent event bubbling
+        e.stopPropagation();
+        
         // Prevent multiple clicks while processing
         if (favoriteBtn.getAttribute("data-processing") === "true") {
           return;
@@ -403,6 +427,22 @@ class View {
             favoriteBtn.setAttribute("data-processing", "false");
             this._setButtonLoading(favoriteBtn, false);
           });
+        }
+      });
+
+      // Setup view detail button
+      const viewDetailBtn = card.querySelector(".view-detail-btn");
+      viewDetailBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (this.onStoryClick) {
+          this.onStoryClick(story.id);
+        }
+      });
+
+      // Setup click on card for detail view
+      card.addEventListener("click", () => {
+        if (this.onStoryClick) {
+          this.onStoryClick(story.id);
         }
       });
 
@@ -1425,6 +1465,142 @@ class View {
     } else {
       input.classList.add("error");
     }
+  }
+
+  // Ditambahkan untuk kriteria wajib IndexedDB - Setup event untuk edit foto
+  _setupEditPhotoInput() {
+    if (this.editPhotoInput) {
+      this.editPhotoInput.addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (file && file.type.startsWith("image/")) {
+          if (file.size > 1 * 1024 * 1024) {
+            this.showMessage("Ukuran foto terlalu besar. Maksimal 1MB.", true);
+            this.editPhotoInput.value = "";
+            return;
+          }
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            this.editPreview.src = event.target.result;
+            this.editPreview.classList.remove("hidden");
+          };
+          reader.readAsDataURL(file);
+        } else {
+          this.showMessage("Harap pilih file gambar yang valid.", true);
+          this.editPhotoInput.value = "";
+        }
+      });
+    }
+  }
+
+  // Ditambahkan untuk kriteria wajib IndexedDB - Setup action pada halaman detail
+  _setupStoryDetailActions() {
+    // Setup edit button
+    if (this.editStoryBtn) {
+      this.editStoryBtn.addEventListener("click", () => {
+        if (this.currentStoryId) {
+          this.navigateTo("edit-story-page");
+        }
+      });
+    }
+
+    // Setup delete button
+    if (this.deleteStoryBtn) {
+      this.deleteStoryBtn.addEventListener("click", () => {
+        if (this.currentStoryId && this.onDeleteStory) {
+          // Konfirmasi sebelum menghapus
+          this._showDeleteConfirmation(this.currentStoryId);
+        }
+      });
+    }
+
+    // Setup edit story form submission
+    if (this.editStoryForm) {
+      this.editStoryForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        if (this.onEditStorySubmit) {
+          const storyId = this.editStoryId.value;
+          const description = this.editDescription.value;
+          const photoFile = this.editPhotoInput.files[0];
+
+          // Show loading state
+          const submitBtn = e.target.querySelector('button[type="submit"]');
+          this._setButtonLoading(submitBtn, true);
+
+          this.onEditStorySubmit(storyId, description, photoFile)
+            .catch((err) => console.error("Edit story error:", err))
+            .finally(() => {
+              this._setButtonLoading(submitBtn, false);
+            });
+        }
+      });
+    }
+  }
+
+  // Tampilkan konfirmasi hapus
+  _showDeleteConfirmation(storyId) {
+    Swal.fire({
+      title: 'Hapus Cerita?',
+      text: "Cerita yang sudah dihapus tidak dapat dikembalikan",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Ya, hapus cerita',
+      cancelButtonText: 'Batal',
+      customClass: {
+        container: 'swal2-container-custom',
+        popup: 'swal2-popup-custom',
+      },
+    }).then((result) => {
+      if (result.isConfirmed && this.onDeleteStory) {
+        this._setButtonLoading(this.deleteStoryBtn, true);
+        this.onDeleteStory(storyId)
+          .catch((err) => console.error("Delete story error:", err))
+          .finally(() => {
+            this._setButtonLoading(this.deleteStoryBtn, false);
+          });
+      }
+    });
+  }
+
+  // Ditambahkan untuk kriteria wajib IndexedDB - Menampilkan detail cerita
+  displayStoryDetail(story) {
+    if (!story || !this.detailContent) return;
+
+    this.currentStoryId = story.id;
+
+    // Format location display
+    let locationDisplay = "Lokasi tidak tersedia";
+    if (story.lat && story.lon) {
+      const lat = parseFloat(story.lat).toFixed(4);
+      const lon = parseFloat(story.lon).toFixed(4);
+      locationDisplay = `${lat}, ${lon}`;
+    }
+
+    // Tampilkan detail cerita
+    this.detailContent.innerHTML = `
+      <img src="${story.photoUrl}" alt="Foto cerita ${story.name}">
+      <h2>${story.name}</h2>
+      <div class="meta">
+        <span><i class="fas fa-calendar"></i> ${new Date(story.createdAt).toLocaleDateString("id-ID")}</span>
+        ${story.lastUpdated ? `<span><i class="fas fa-edit"></i> Diedit: ${new Date(story.lastUpdated).toLocaleDateString("id-ID")}</span>` : ''}
+      </div>
+      <p>${story.description}</p>
+      <div class="location">
+        <i class="fas fa-map-marker-alt"></i> ${locationDisplay}
+      </div>
+    `;
+
+    // Set data untuk form edit
+    if (this.editStoryId) this.editStoryId.value = story.id;
+    if (this.editDescription) this.editDescription.value = story.description;
+    if (this.editPreview) {
+      this.editPreview.src = story.photoUrl;
+      this.editPreview.classList.remove("hidden");
+    }
+
+    // Tampilkan halaman detail
+    this.navigateTo("story-detail");
   }
 }
 
