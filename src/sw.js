@@ -23,6 +23,7 @@ if (workbox) {
     { url: "/sw.js", revision: "1" },
     // Only include icons that actually exist
     { url: "/icons/icon-144x144.png", revision: "1" },
+    { url: "/icons/icon-192x192.png", revision: "1" },
     { url: "/icons/error-icon-72x72.png", revision: "1" },
     // Add screenshots for the app manifest
     { url: "/screenshots/desktop.png", revision: "1" },
@@ -99,6 +100,75 @@ if (workbox) {
         }),
       ],
     })
+  );
+
+  // API Caching Strategy
+  workbox.routing.registerRoute(
+    new RegExp("https://story-api.dicoding.dev/v1/.*"),
+    new workbox.strategies.NetworkFirst({
+      cacheName: "api-cache",
+      plugins: [
+        new workbox.cacheableResponse.CacheableResponsePlugin({
+          // Include 401 responses to handle them properly in the app
+          statuses: [0, 200, 401],
+        }),
+        new workbox.expiration.ExpirationPlugin({
+          maxEntries: 100,
+          maxAgeSeconds: 30 * 24 * 60 * 60, // 30 Days
+        }),
+      ],
+    })
+  );
+
+  // Special handling for API authentication errors
+  workbox.routing.registerRoute(
+    new RegExp("https://story-api.dicoding.dev/v1/stories"),
+    async ({ url, request, event, params }) => {
+      try {
+        // Try network first
+        const response = await fetch(request);
+
+        // If we get a 401 Unauthorized, we should clear the token
+        if (response.status === 401) {
+          // We can't directly access localStorage from SW, but we can post a message
+          self.clients.matchAll().then((clients) => {
+            clients.forEach((client) => {
+              client.postMessage({
+                type: "AUTH_ERROR",
+                message: "Authentication failed. Please login again.",
+              });
+            });
+          });
+
+          // Return the 401 response so the app can handle it
+          return response;
+        }
+
+        // For successful responses, cache and return
+        const cache = await caches.open("api-cache");
+        cache.put(request, response.clone());
+        return response;
+      } catch (error) {
+        // If offline, try to get from cache
+        const cachedResponse = await caches.match(request);
+        if (cachedResponse) {
+          return cachedResponse;
+        }
+
+        // If no cache, return offline JSON response
+        return new Response(
+          JSON.stringify({
+            error: true,
+            message: "You are offline. Please check your connection.",
+            listStory: [],
+          }),
+          {
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+      }
+    },
+    "GET"
   );
 
   // Offline Fallback

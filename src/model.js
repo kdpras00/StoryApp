@@ -98,11 +98,25 @@ class Model {
       const tx = this.db.transaction("stories", "readonly");
       const store = tx.objectStore("stories");
       const index = store.index("by-date");
-      const stories = await index.getAll();
 
       return new Promise((resolve, reject) => {
-        tx.oncomplete = () => resolve(stories);
-        tx.onerror = (event) => reject(event.target.error);
+        const request = index.getAll();
+
+        request.onsuccess = () => {
+          // Ensure we always return an array
+          const result = Array.isArray(request.result) ? request.result : [];
+          resolve(result);
+        };
+
+        request.onerror = (event) => {
+          console.error("Error in getAll request:", event.target.error);
+          resolve([]); // Return empty array on error
+        };
+
+        tx.onerror = (event) => {
+          console.error("Transaction error:", event.target.error);
+          resolve([]); // Return empty array on error
+        };
       });
     } catch (error) {
       console.error("Error getting stories from IndexedDB:", error);
@@ -115,20 +129,51 @@ class Model {
     if (!this.db) return;
 
     try {
+      // Ensure favorites is an array
+      if (!Array.isArray(favorites)) {
+        console.error(
+          "saveFavoritesToIndexedDB received non-array:",
+          favorites
+        );
+        favorites = [];
+      }
+
       const tx = this.db.transaction("favorites", "readwrite");
       const store = tx.objectStore("favorites");
 
       // Clear previous favorites
-      store.clear();
+      await new Promise((resolve, reject) => {
+        const clearRequest = store.clear();
+        clearRequest.onsuccess = () => resolve();
+        clearRequest.onerror = (event) => {
+          console.error("Error clearing favorites:", event.target.error);
+          reject(event.target.error);
+        };
+      });
 
       // Add current favorites
       for (const favorite of favorites) {
-        store.put(favorite);
+        try {
+          if (favorite && typeof favorite === "object" && favorite.id) {
+            store.put(favorite);
+          } else {
+            console.warn("Skipping invalid favorite:", favorite);
+          }
+        } catch (itemError) {
+          console.error("Error adding favorite item:", itemError);
+          // Continue with other items
+        }
       }
 
       return new Promise((resolve, reject) => {
         tx.oncomplete = () => resolve();
-        tx.onerror = (event) => reject(event.target.error);
+        tx.onerror = (event) => {
+          console.error(
+            "Transaction error in saveFavoritesToIndexedDB:",
+            event.target.error
+          );
+          reject(event.target.error);
+        };
       });
     } catch (error) {
       console.error("Error saving favorites to IndexedDB:", error);
@@ -337,37 +382,96 @@ class Model {
   // Get stories with offline support
   async getStories() {
     try {
+      // First check if we're logged in
+      if (!this.token) {
+        console.warn("No authentication token available");
+        return (await this.getStoriesFromIndexedDB()) || [];
+      }
+
       if (navigator.onLine) {
-        // Online: get from API and store in IndexedDB
-        const response = await fetch(`${this.API_BASE_URL}/stories`, {
-          headers: {
-            Authorization: `Bearer ${this.token}`,
-          },
-        });
+        try {
+          // Online: get from API and store in IndexedDB
+          const response = await fetch(`${this.API_BASE_URL}/stories`, {
+            headers: {
+              Authorization: `Bearer ${this.token}`,
+            },
+          });
 
-        const responseData = await response.json();
+          // Check for unauthorized status (401)
+          if (response.status === 401) {
+            console.error("Authentication failed: Invalid or expired token");
+            // Clear the invalid token
+            this.logout();
+            // Throw specific error for handling
+            throw new Error("Authentication failed. Please login again.");
+          }
 
-        if (responseData.error) {
-          throw new Error(responseData.message);
+          const responseData = await response.json();
+
+          if (responseData.error) {
+            throw new Error(responseData.message);
+          }
+
+          // Ensure listStory is an array
+          if (Array.isArray(responseData.listStory)) {
+            this.stories = responseData.listStory;
+
+            // Save stories to IndexedDB for offline access
+            await this.saveStoriesToIndexedDB(this.stories);
+
+            return this.stories;
+          } else {
+            console.error("API returned non-array listStory:", responseData);
+            throw new Error("Invalid data format from API");
+          }
+        } catch (onlineError) {
+          console.error("Error fetching stories online:", onlineError);
+
+          // Check if this is an auth error
+          if (onlineError.message.includes("Authentication failed")) {
+            // Return empty array for auth errors
+            return [];
+          }
+
+          // For other errors, fall back to IndexedDB
+          throw onlineError;
         }
-
-        this.stories = responseData.listStory;
-
-        // Save stories to IndexedDB for offline access
-        await this.saveStoriesToIndexedDB(this.stories);
-
-        return this.stories;
       } else {
         // Offline: get from IndexedDB
+        console.log("Device is offline, fetching stories from IndexedDB");
         this.stories = await this.getStoriesFromIndexedDB();
+
+        // Ensure stories is an array
+        if (!Array.isArray(this.stories)) {
+          console.error("IndexedDB returned non-array stories:", this.stories);
+          this.stories = [];
+        }
+
         return this.stories;
       }
     } catch (error) {
-      console.error("Error getting stories:", error);
+      console.error("Error getting stories, falling back to IndexedDB:", error);
 
-      // If API call fails, try to get from IndexedDB
-      this.stories = await this.getStoriesFromIndexedDB();
-      return this.stories;
+      try {
+        // If API call fails, try to get from IndexedDB
+        this.stories = await this.getStoriesFromIndexedDB();
+
+        // Final check to ensure we return an array
+        if (!Array.isArray(this.stories)) {
+          console.error(
+            "Final fallback: IndexedDB returned non-array:",
+            this.stories
+          );
+          this.stories = [];
+        }
+
+        return this.stories;
+      } catch (dbError) {
+        console.error("Complete failure getting stories:", dbError);
+        // Last resort: return empty array
+        this.stories = [];
+        return this.stories;
+      }
     }
   }
 
@@ -464,27 +568,66 @@ class Model {
     // Save to localStorage
     localStorage.setItem("favorites", JSON.stringify(this.favorites));
 
-    // Save to IndexedDB
-    await this.saveFavoritesToIndexedDB(
-      this.stories.filter((story) => this.favorites.includes(story.id))
-    );
+    try {
+      // Ensure stories is an array before filtering
+      if (!Array.isArray(this.stories)) {
+        console.error(
+          "this.stories is not an array in toggleFavorite:",
+          this.stories
+        );
+        // Try to get stories from IndexedDB
+        this.stories = await this.getStoriesFromIndexedDB();
 
-    // Record action for sync (not needed for server, but for completeness)
-    await this.addOfflineAction("toggleFavorite", {
-      storyId,
-      isFavorite: !isFavorite,
-    });
+        if (!Array.isArray(this.stories)) {
+          console.error(
+            "Failed to get array from IndexedDB, using empty array"
+          );
+          this.stories = [];
+        }
+      }
 
-    return {
-      error: false,
-      message: isFavorite ? "Removed from favorites" : "Added to favorites",
-    };
+      // Filter favorite stories and save to IndexedDB
+      const favoriteStories = this.stories.filter(
+        (story) => story && story.id && this.favorites.includes(story.id)
+      );
+
+      await this.saveFavoritesToIndexedDB(favoriteStories);
+
+      // Record action for sync
+      await this.addOfflineAction("toggleFavorite", {
+        storyId,
+        isFavorite: !isFavorite,
+      });
+
+      return {
+        error: false,
+        message: isFavorite ? "Removed from favorites" : "Added to favorites",
+      };
+    } catch (error) {
+      console.error("Error in toggleFavorite:", error);
+      return {
+        error: true,
+        message: "Failed to update favorites. Please try again.",
+      };
+    }
   }
 
   // Get favorite stories
   async getFavoriteStories() {
-    const stories = await this.getStories();
-    return stories.filter((story) => this.favorites.includes(story.id));
+    try {
+      const stories = await this.getStories();
+
+      // Ensure stories is an array before filtering
+      if (!Array.isArray(stories)) {
+        console.error("Stories is not an array:", stories);
+        return [];
+      }
+
+      return stories.filter((story) => this.favorites.includes(story.id));
+    } catch (error) {
+      console.error("Error getting favorite stories:", error);
+      return [];
+    }
   }
 
   // Check if story is in favorites
@@ -494,32 +637,89 @@ class Model {
 
   // Add story to favorites
   async addStoryToFavorites(story) {
-    if (!this.favorites.includes(story.id)) {
-      this.favorites.push(story.id);
-      localStorage.setItem("favorites", JSON.stringify(this.favorites));
+    try {
+      if (!story || !story.id) {
+        console.error("Invalid story object:", story);
+        return false;
+      }
 
-      // Save to IndexedDB
-      await this.saveFavoritesToIndexedDB(
-        this.stories.filter((s) => this.favorites.includes(s.id))
-      );
-      return true;
+      if (!this.favorites.includes(story.id)) {
+        this.favorites.push(story.id);
+        localStorage.setItem("favorites", JSON.stringify(this.favorites));
+
+        // Ensure stories is an array
+        if (!Array.isArray(this.stories)) {
+          console.error("this.stories is not an array in addStoryToFavorites");
+          this.stories = await this.getStoriesFromIndexedDB();
+
+          if (!Array.isArray(this.stories)) {
+            console.error(
+              "Failed to get array from IndexedDB, using empty array"
+            );
+            this.stories = [];
+          }
+        }
+
+        // Add the current story to stories array if it doesn't exist
+        if (!this.stories.some((s) => s.id === story.id)) {
+          this.stories.push(story);
+        }
+
+        // Save to IndexedDB
+        const favoriteStories = this.stories.filter(
+          (s) => s && s.id && this.favorites.includes(s.id)
+        );
+
+        await this.saveFavoritesToIndexedDB(favoriteStories);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error("Error in addStoryToFavorites:", error);
+      return false;
     }
-    return false;
   }
 
   // Remove story from favorites
   async removeStoryFromFavorites(storyId) {
-    if (this.favorites.includes(storyId)) {
-      this.favorites = this.favorites.filter((id) => id !== storyId);
-      localStorage.setItem("favorites", JSON.stringify(this.favorites));
+    try {
+      if (!storyId) {
+        console.error("Invalid storyId:", storyId);
+        return false;
+      }
 
-      // Save to IndexedDB
-      await this.saveFavoritesToIndexedDB(
-        this.stories.filter((story) => this.favorites.includes(story.id))
-      );
-      return true;
+      if (this.favorites.includes(storyId)) {
+        this.favorites = this.favorites.filter((id) => id !== storyId);
+        localStorage.setItem("favorites", JSON.stringify(this.favorites));
+
+        // Ensure stories is an array
+        if (!Array.isArray(this.stories)) {
+          console.error(
+            "this.stories is not an array in removeStoryFromFavorites"
+          );
+          this.stories = await this.getStoriesFromIndexedDB();
+
+          if (!Array.isArray(this.stories)) {
+            console.error(
+              "Failed to get array from IndexedDB, using empty array"
+            );
+            this.stories = [];
+          }
+        }
+
+        // Save to IndexedDB
+        const favoriteStories = this.stories.filter(
+          (story) => story && story.id && this.favorites.includes(story.id)
+        );
+
+        await this.saveFavoritesToIndexedDB(favoriteStories);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error("Error in removeStoryFromFavorites:", error);
+      return false;
     }
-    return false;
   }
 
   // Subscribe to push notifications

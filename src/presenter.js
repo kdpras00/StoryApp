@@ -301,6 +301,28 @@ class Presenter {
   handleRouteChange() {
     const hash = window.location.hash.slice(1) || "login";
 
+    // Validate token first if it exists
+    if (this.model.token) {
+      try {
+        // Simple token validation (check if it's a valid JWT format)
+        const tokenParts = this.model.token.split(".");
+        if (tokenParts.length !== 3) {
+          console.error("Invalid token format detected");
+          this.model.logout();
+          this.view.updateNav(false);
+          this.view.showMessage(
+            "Sesi Anda telah berakhir. Silakan login kembali.",
+            true
+          );
+          this.view.navigateTo("login");
+          return;
+        }
+      } catch (error) {
+        console.error("Token validation error:", error);
+        this.model.logout();
+      }
+    }
+
     // If trying to access protected pages without being logged in
     if (
       !this.model.isLoggedIn() &&
@@ -390,7 +412,35 @@ class Presenter {
 
   async loadStories() {
     try {
+      // Check if user is still logged in
+      if (!this.model.isLoggedIn()) {
+        console.warn("User not logged in, redirecting to login page");
+        this.view.showMessage(
+          "Sesi Anda telah berakhir. Silakan login kembali.",
+          true
+        );
+        this.view.updateNav(false);
+        this.view.navigateTo("login");
+        return;
+      }
+
       const stories = await this.model.fetchStories();
+
+      // If stories fetch returns empty due to auth error, redirect to login
+      if (Array.isArray(stories) && stories.length === 0 && navigator.onLine) {
+        // Check if this might be due to an auth error
+        if (!this.model.isLoggedIn()) {
+          console.warn("Authentication failed, redirecting to login");
+          this.view.showMessage(
+            "Sesi Anda telah berakhir. Silakan login kembali.",
+            true
+          );
+          this.view.updateNav(false);
+          this.view.navigateTo("login");
+          return;
+        }
+      }
+
       const favorites = await this.model.getFavorites();
       this.view.displayStories(stories, favorites);
 
@@ -399,6 +449,18 @@ class Presenter {
       this.view.clearSearch();
     } catch (error) {
       console.error("Load stories error:", error);
+
+      // Check if this is an authentication error
+      if (error.message && error.message.includes("Authentication")) {
+        this.view.showMessage(
+          "Sesi Anda telah berakhir. Silakan login kembali.",
+          true
+        );
+        this.view.updateNav(false);
+        this.view.navigateTo("login");
+        return;
+      }
+
       this.view.showMessage("Gagal memuat cerita. Coba lagi nanti.", true);
     }
   }
