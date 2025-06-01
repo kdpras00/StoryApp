@@ -22,6 +22,9 @@ class Presenter {
     this.view.onNavLinkClick = this.handleNavLinkClick.bind(this);
     this.view.onMapClick = this.handleMapClick.bind(this);
     this.view.onFilterChange = this.handleFilterChange.bind(this);
+    this.view.onStoryClick = this.handleStoryClick.bind(this);
+    this.view.onEditStorySubmit = this.handleEditStorySubmit.bind(this);
+    this.view.onDeleteStory = this.handleDeleteStory.bind(this);
 
     this.init();
   }
@@ -46,6 +49,19 @@ class Presenter {
     setInterval(() => {
       this.checkForNewStories();
     }, 60000); // Cek setiap 1 menit
+
+    // Check for offline status
+    window.addEventListener("online", () => {
+      this.view.showMessage("Anda kembali online", false);
+      this.model.syncOfflineData();
+    });
+
+    window.addEventListener("offline", () => {
+      this.view.showMessage(
+        "Anda offline. Beberapa fitur mungkin tidak tersedia.",
+        true
+      );
+    });
   }
 
   handleMapClick(latlng) {
@@ -398,6 +414,11 @@ class Presenter {
           await this.loadFavoriteStories();
         }
         break;
+      case "story-detail":
+      case "edit-story-page":
+        // Tidak perlu setup khusus untuk halaman detail dan edit
+        // Data sudah diisi saat navigasi ke halaman ini
+        break;
       default:
         this.view.stopCamera();
         break;
@@ -717,6 +738,74 @@ class Presenter {
 
       // Simpan ID cerita terbaru
       localStorage.setItem("lastKnownStoryId", currentStories[0].id);
+    }
+  }
+
+  async handleStoryClick(storyId) {
+    try {
+      const story = await this.model.getStoryDetail(storyId);
+      this.view.displayStoryDetail(story);
+    } catch (error) {
+      console.error("Error getting story detail:", error);
+      this.view.showMessage("Gagal memuat detail cerita. " + error.message, true);
+    }
+  }
+
+  async handleEditStorySubmit(storyId, description, photoFile) {
+    try {
+      if (!description.trim()) {
+        this.view.showMessage("Deskripsi cerita tidak boleh kosong", true);
+        return;
+      }
+
+      // Buat object data untuk update
+      const updatedData = { description };
+      
+      // Tambahkan photo jika ada perubahan foto
+      if (photoFile) {
+        updatedData.photo = photoFile;
+      }
+
+      // Update cerita
+      const result = await this.model.updateStory(storyId, updatedData);
+
+      if (result.error) {
+        throw new Error(result.message);
+      }
+
+      // Tampilkan pesan sukses
+      this.view.showMessage(result.message || "Cerita berhasil diperbarui", false);
+      
+      // Kembali ke halaman detail cerita yang sudah diupdate
+      await this.handleStoryClick(storyId);
+      
+      // Refresh daftar cerita di halaman home
+      await this.loadStories();
+    } catch (error) {
+      console.error("Error updating story:", error);
+      this.view.showMessage("Gagal memperbarui cerita: " + error.message, true);
+    }
+  }
+
+  async handleDeleteStory(storyId) {
+    try {
+      const result = await this.model.deleteStory(storyId);
+
+      if (result.error) {
+        throw new Error(result.message);
+      }
+
+      // Tampilkan pesan sukses
+      this.view.showMessage(result.message || "Cerita berhasil dihapus", false);
+      
+      // Kembali ke halaman home
+      this.view.navigateTo("home");
+      
+      // Refresh daftar cerita
+      await this.loadStories();
+    } catch (error) {
+      console.error("Error deleting story:", error);
+      this.view.showMessage("Gagal menghapus cerita: " + error.message, true);
     }
   }
 }

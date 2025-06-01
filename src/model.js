@@ -228,11 +228,10 @@ class Model {
   // Sync offline data when back online
   async syncOfflineData() {
     // Disable this function temporarily to avoid errors
-    console.log("Offline data sync disabled temporarily");
-    return;
+    // console.log("Offline data sync disabled temporarily");
+    // return;
 
-    // Original code below
-    /*
+    // Original code with added update/delete sync support
     if (!this.db || !navigator.onLine || !this.isLoggedIn()) return;
 
     try {
@@ -256,6 +255,38 @@ class Model {
               break;
             case "toggleFavorite":
               // We don't need to sync favorites to server, just local storage
+              break;
+            case "updateStory":
+              // Sync story update to server
+              if (action.data && action.data.storyId && action.data.updatedData) {
+                const formData = new FormData();
+                
+                // Add all updated data to FormData
+                Object.entries(action.data.updatedData).forEach(([key, value]) => {
+                  if (value !== undefined && value !== null) {
+                    formData.append(key, value);
+                  }
+                });
+                
+                await fetch(`${this.API_BASE_URL}/stories/${action.data.storyId}`, {
+                  method: 'PUT',
+                  headers: {
+                    Authorization: `Bearer ${this.token}`,
+                  },
+                  body: formData,
+                });
+              }
+              break;
+            case "deleteStory":
+              // Sync story deletion to server
+              if (action.data && action.data.storyId) {
+                await fetch(`${this.API_BASE_URL}/stories/${action.data.storyId}`, {
+                  method: 'DELETE',
+                  headers: {
+                    Authorization: `Bearer ${this.token}`,
+                  },
+                });
+              }
               break;
             // Add more action types as needed
           }
@@ -294,7 +325,6 @@ class Model {
     } catch (error) {
       console.error("Error syncing offline data:", error);
     }
-    */
   }
 
   // Login method
@@ -803,6 +833,248 @@ class Model {
       }
     } catch (error) {
       throw new Error(`Failed to get story detail: ${error.message}`);
+    }
+  }
+
+  // Delete story from IndexedDB
+  async deleteStoryFromIndexedDB(storyId) {
+    if (!this.db || !storyId) return false;
+
+    try {
+      const tx = this.db.transaction("stories", "readwrite");
+      const store = tx.objectStore("stories");
+
+      // Delete the story from stories store
+      const deleteRequest = store.delete(storyId);
+
+      // Also remove from favorites if exists
+      const favTx = this.db.transaction("favorites", "readwrite");
+      const favStore = favTx.objectStore("favorites");
+      const favDeleteRequest = favStore.delete(storyId);
+
+      return new Promise((resolve, reject) => {
+        deleteRequest.onsuccess = () => {
+          // Update local stories array
+          this.stories = this.stories.filter(story => story.id !== storyId);
+          
+          // If it was a favorite, update favorites array too
+          if (this.favorites.includes(storyId)) {
+            this.favorites = this.favorites.filter(id => id !== storyId);
+            localStorage.setItem("favorites", JSON.stringify(this.favorites));
+          }
+          
+          resolve({
+            error: false,
+            message: "Story deleted successfully",
+          });
+        };
+        
+        deleteRequest.onerror = (event) => {
+          console.error("Error deleting story from IndexedDB:", event.target.error);
+          reject({
+            error: true,
+            message: "Failed to delete story",
+          });
+        };
+      });
+    } catch (error) {
+      console.error("Error in deleteStoryFromIndexedDB:", error);
+      return {
+        error: true,
+        message: "Failed to delete story: " + error.message,
+      };
+    }
+  }
+
+  // Update story in IndexedDB
+  async updateStoryInIndexedDB(storyId, updatedData) {
+    if (!this.db || !storyId) return false;
+
+    try {
+      // First get the existing story
+      const tx = this.db.transaction("stories", "readwrite");
+      const store = tx.objectStore("stories");
+      
+      return new Promise((resolve, reject) => {
+        const getRequest = store.get(storyId);
+        
+        getRequest.onsuccess = () => {
+          const story = getRequest.result;
+          
+          if (!story) {
+            reject({
+              error: true,
+              message: "Story not found",
+            });
+            return;
+          }
+          
+          // Update story with new data
+          const updatedStory = {
+            ...story,
+            ...updatedData,
+            // Keep the original ID and creation date
+            id: storyId,
+            createdAt: story.createdAt,
+            // Add lastUpdated timestamp
+            lastUpdated: new Date().toISOString()
+          };
+          
+          // Put the updated story back
+          const putRequest = store.put(updatedStory);
+          
+          putRequest.onsuccess = () => {
+            // Update the local stories array too
+            this.stories = this.stories.map(s => 
+              s.id === storyId ? updatedStory : s
+            );
+            
+            // If it's in favorites, update that too
+            if (this.favorites.includes(storyId)) {
+              const favTx = this.db.transaction("favorites", "readwrite");
+              const favStore = favTx.objectStore("favorites");
+              favStore.put(updatedStory);
+            }
+            
+            resolve({
+              error: false,
+              message: "Story updated successfully",
+              story: updatedStory
+            });
+          };
+          
+          putRequest.onerror = (event) => {
+            console.error("Error updating story in IndexedDB:", event.target.error);
+            reject({
+              error: true,
+              message: "Failed to update story",
+            });
+          };
+        };
+        
+        getRequest.onerror = (event) => {
+          console.error("Error getting story for update:", event.target.error);
+          reject({
+            error: true,
+            message: "Failed to get story for update",
+          });
+        };
+      });
+    } catch (error) {
+      console.error("Error in updateStoryInIndexedDB:", error);
+      return {
+        error: true,
+        message: "Failed to update story: " + error.message,
+      };
+    }
+  }
+
+  // Delete story (with online/offline support)
+  async deleteStory(storyId) {
+    try {
+      if (navigator.onLine && this.token) {
+        // Online: delete from API first
+        const response = await fetch(`${this.API_BASE_URL}/stories/${storyId}`, {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${this.token}`,
+          },
+        });
+        
+        const data = await response.json();
+        
+        if (data.error) {
+          throw new Error(data.message || "Failed to delete story from server");
+        }
+        
+        // Then delete from IndexedDB
+        await this.deleteStoryFromIndexedDB(storyId);
+        
+        return {
+          error: false,
+          message: "Story deleted successfully",
+        };
+      } else {
+        // Offline: delete from IndexedDB and record for later sync
+        await this.deleteStoryFromIndexedDB(storyId);
+        
+        // Save action for later sync
+        await this.addOfflineAction("deleteStory", {
+          storyId,
+        });
+        
+        return {
+          error: false,
+          message: "Story deleted (offline mode). It will be synced when you're back online.",
+        };
+      }
+    } catch (error) {
+      console.error("Error deleting story:", error);
+      return {
+        error: true,
+        message: "Failed to delete story: " + error.message,
+      };
+    }
+  }
+
+  // Update story (with online/offline support)
+  async updateStory(storyId, updatedData) {
+    try {
+      if (navigator.onLine && this.token) {
+        // Online: update on API first
+        const formData = new FormData();
+        
+        // Add all updated data to FormData
+        Object.entries(updatedData).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            formData.append(key, value);
+          }
+        });
+        
+        const response = await fetch(`${this.API_BASE_URL}/stories/${storyId}`, {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bearer ${this.token}`,
+          },
+          body: formData,
+        });
+        
+        const data = await response.json();
+        
+        if (data.error) {
+          throw new Error(data.message || "Failed to update story on server");
+        }
+        
+        // Then update in IndexedDB
+        const result = await this.updateStoryInIndexedDB(storyId, updatedData);
+        
+        return {
+          error: false,
+          message: "Story updated successfully",
+          story: result.story,
+        };
+      } else {
+        // Offline: update in IndexedDB and record for later sync
+        const result = await this.updateStoryInIndexedDB(storyId, updatedData);
+        
+        // Save action for later sync
+        await this.addOfflineAction("updateStory", {
+          storyId,
+          updatedData,
+        });
+        
+        return {
+          error: false,
+          message: "Story updated (offline mode). It will be synced when you're back online.",
+          story: result.story,
+        };
+      }
+    } catch (error) {
+      console.error("Error updating story:", error);
+      return {
+        error: true,
+        message: "Failed to update story: " + error.message,
+      };
     }
   }
 }
