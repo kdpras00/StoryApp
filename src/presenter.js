@@ -180,6 +180,12 @@ class Presenter {
       if (!result.error) {
         this.view.updateNav(true);
         this.view.navigateTo("home");
+
+        // Initialize the story map before loading stories
+        if (!this.view.storyMap) {
+          this.view.setupStoryMap();
+        }
+
         await this.loadStories();
 
         // Setup push notification after successful login
@@ -445,6 +451,11 @@ class Presenter {
         return;
       }
 
+      // Ensure storyMap is initialized before loading stories
+      if (!this.view.storyMap) {
+        this.view.setupStoryMap();
+      }
+
       const stories = await this.model.fetchStories();
 
       // If stories fetch returns empty due to auth error, redirect to login
@@ -461,6 +472,9 @@ class Presenter {
           return;
         }
       }
+
+      // Clear existing map markers before displaying new stories
+      this.view.clearStoryMapMarkers();
 
       const favorites = await this.model.getFavorites();
       this.view.displayStories(stories, favorites);
@@ -747,7 +761,10 @@ class Presenter {
       this.view.displayStoryDetail(story);
     } catch (error) {
       console.error("Error getting story detail:", error);
-      this.view.showMessage("Gagal memuat detail cerita. " + error.message, true);
+      this.view.showMessage(
+        "Gagal memuat detail cerita. " + error.message,
+        true
+      );
     }
   }
 
@@ -760,7 +777,7 @@ class Presenter {
 
       // Buat object data untuk update
       const updatedData = { description };
-      
+
       // Tambahkan photo jika ada perubahan foto
       if (photoFile) {
         updatedData.photo = photoFile;
@@ -774,11 +791,14 @@ class Presenter {
       }
 
       // Tampilkan pesan sukses
-      this.view.showMessage(result.message || "Cerita berhasil diperbarui", false);
-      
+      this.view.showMessage(
+        result.message || "Cerita berhasil diperbarui",
+        false
+      );
+
       // Kembali ke halaman detail cerita yang sudah diupdate
       await this.handleStoryClick(storyId);
-      
+
       // Refresh daftar cerita di halaman home
       await this.loadStories();
     } catch (error) {
@@ -797,10 +817,10 @@ class Presenter {
 
       // Tampilkan pesan sukses
       this.view.showMessage(result.message || "Cerita berhasil dihapus", false);
-      
+
       // Kembali ke halaman home
       this.view.navigateTo("home");
-      
+
       // Refresh daftar cerita
       await this.loadStories();
     } catch (error) {

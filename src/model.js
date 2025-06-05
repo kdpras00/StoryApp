@@ -312,34 +312,32 @@ class Model {
               }
             }
 
-            // Clean up synced actions if by-type index exists
+            // Clean up synced actions
             try {
-              if (
-                store.indexNames &&
-                store.indexNames.contains &&
-                store.indexNames.contains("by-type")
-              ) {
-                const cleanupTx = this.db.transaction(
-                  "offlineActions",
-                  "readwrite"
+              // Get all actions
+              const cleanupTx = this.db.transaction(
+                "offlineActions",
+                "readwrite"
+              );
+              const cleanupStore = cleanupTx.objectStore("offlineActions");
+              const getAllRequest = cleanupStore.getAll();
+
+              getAllRequest.onsuccess = () => {
+                const allActions = Array.isArray(getAllRequest.result)
+                  ? getAllRequest.result
+                  : [];
+
+                // Filter for synced actions
+                const syncedActions = allActions.filter(
+                  (action) => action.synced === true
                 );
-                const cleanupStore = cleanupTx.objectStore("offlineActions");
-                const syncedRequest = cleanupStore
-                  .index("by-type")
-                  .getAll(IDBKeyRange.only(true));
 
-                syncedRequest.onsuccess = () => {
-                  const syncedActions = Array.isArray(syncedRequest.result)
-                    ? syncedRequest.result
-                    : [];
-
-                  if (syncedActions.length) {
-                    for (const action of syncedActions) {
-                      cleanupStore.delete(action.timestamp);
-                    }
+                if (syncedActions.length) {
+                  for (const action of syncedActions) {
+                    cleanupStore.delete(action.timestamp);
                   }
-                };
-              }
+                }
+              };
             } catch (cleanupError) {
               console.warn(
                 "Error during cleanup of synced actions:",
@@ -419,8 +417,9 @@ class Model {
   }
 
   // Register method
-  async register(name, email, password) {
+  async register(data) {
     try {
+      const { name, email, password } = data;
       const response = await fetch(`${this.API_BASE_URL}/register`, {
         method: "POST",
         headers: {
